@@ -167,6 +167,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Lỗi định dạng', 'Chỉ chấp nhận tệp .docx', 'error');
             return;
         }
+        
+        // Vercel Serverless Function Payload Limit Check
+        const MAX_MB = 50;
+        if (file.size > MAX_MB * 1024 * 1024) {
+            showToast('Tệp tin quá lớn', \Dung lượng file là MB. Bản Web miễn phí chỉ hỗ trợ tối đa MB. Vui lòng tải app về máy tính để xử lý file không giới hạn.\, 'error');
+            return;
+        }
         selectedFile = file;
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
@@ -357,8 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(intervalId);
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Lỗi không xác định');
+                let errorMsg = 'Lỗi không xác định từ máy chủ.';
+                if (response.status === 413) {
+                    errorMsg = 'Tệp tin quá lớn! Vercel chỉ cho phép tải lên tối đa 4.5MB. Vui lòng chạy app trên máy tính (Offline) để không bị giới hạn dung lượng.';
+                } else if (response.status === 504) {
+                    errorMsg = 'Quá thời gian xử lý! Máy chủ ngắt kết nối sau 10 giây. Vui lòng chạy ứng dụng trên máy tính đối với các file lớn.';
+                } else {
+                    try {
+                        const rawText = await response.text();
+                        const errData = JSON.parse(rawText);
+                        errorMsg = errData.error || errorMsg;
+                    } catch (e) {
+                        errorMsg = \Lỗi hệ thống (\). Có thể do Vercel từ chối kết nối. Vui lòng thử lại.\;
+                    }
+                }
+                throw new Error(errorMsg);
             }
 
             progressBarInner.style.width = '100%';
