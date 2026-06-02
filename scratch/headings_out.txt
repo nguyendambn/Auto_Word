@@ -1,0 +1,78 @@
+--- HEADINGS IN ORIGINAL DOCUMENT (FIRST 100 PARAGRAPHS) ---
+Index 27 | Style: Heading 1 | Text: LỜI CẢM ƠN
+Index 28 | Style: Normal | Text: Lời đầu tiên, em xin bày tỏ lòng biết ơn sâu sắc đến Ban Giám hiệu Đại học Công nghiệp Hà Nội, cùng các thầy cô giáo trong Trường Công nghệ thông tin và truyền thông đã tạo điều kiện thuận lợi và truyền đạt những kiến thức nền tảng quý báu trong suốt quá trình em học tập tại trường.
+Index 41 | Style: Normal | Text: MỤC LỤC
+Index 46 | Style: Heading 1 | Text: DANH MỤC BẢNG BIỂU
+Index 75 | Style: Heading 1 | Text: DANH MỤC HÌNH ẢNH
+Index 118 | Style: Heading 1 | Text: MỞ ĐẦU
+Index 119 | Style: Normal | Text: 1. Tên đề tài
+Index 121 | Style: Normal | Text: 2. Lý do chọn đề tài
+Index 127 | Style: Normal | Text: 3. Mục tiêu đề tài
+Index 135 | Style: Normal | Text: 4. Đối tượng và phạm vi nghiên cứu
+Index 145 | Style: Normal | Text: 5. Ý nghĩa khoa học và thực tiễn
+Index 155 | Style: Normal | Text: 6. Bố cục đề tài
+Index 161 | Style: Normal | Text: 7. Phương pháp thực hiện
+Index 168 | Style: Heading 1 | Text: CHƯƠNG 1. TỔNG QUAN VỀ ĐỀ TÀI
+Index 170 | Style: Heading 3 | Text: 1.1.1 Khảo sát sơ bộ
+Index 171 | Style: Heading 4 | Text: 1.1.1.1 Mục tiêu khảo sát
+Index 174 | Style: Heading 4 | Text: 1.1.1.2 Kết quả sơ bộ
+Index 180 | Style: Heading 3 | Text: 1.1.2 Mô tả trang web
+Index 185 | Style: Heading 3 | Text: 1.1.3 Xác định yêu cầu phần mềm
+Index 215 | Style: Heading 2 | Text: 1.2 Công nghệ sử dụng
+Index 248 | Style: Heading 1 | Text: CHƯƠNG 2. PHÂN TÍCH THIẾT KẾ HỆ THỐNG
+Index 249 | Style: Heading 2 | Text: 2.1 Xây dựng biểu đồ Usecase
+Index 256 | Style: Heading 2 | Text: 2.2 Yêu cầu chức năng
+Index 257 | Style: Heading 3 | Text: 2.2.1 Mô tả chi tiết use case Thanh toán
+Index 263 | Style: Heading 3 | Text: 2.2.2 Mô tả chi tiết use case Quản lý tài khoản
+Index 270 | Style: Heading 3 | Text: 2.2.3 Mô tả chi tiết use case Quản lý sản phẩm
+Index 277 | Style: Heading 3 | Text: 2.2.4 Mô tả chi tiết use case Quản lý danh mục
+Index 283 | Style: Heading 3 | Text: 2.2.5 Mô tả chi tiết use case Quản lý đơn hàng
+Index 290 | Style: Heading 3 | Text: 2.2.6 Mô tả chi tiết use case Chat với Chatbot AI
+Index 297 | Style: Heading 2 | Text: 2.3 Phân tích use case
+Index 298 | Style: Heading 3 | Text: 2.3.1 Use case Thanh toán
+Index 308 | Style: Heading 3 | Text: 2.3.2 Use case Quản lý tài khoản
+Index 317 | Style: Heading 3 | Text: 2.3.3 Use case Quản lý sản phẩm
+Index 325 | Style: Heading 3 | Text: 2.3.4 Use case Quản lý danh mục
+Index 333 | Style: Heading 3 | Text: 2.3.5 Use case Quản lý đơn hàng
+Index 340 | Style: Heading 3 | Text: 2.3.6 Use case Chatbot với Chatbot AI
+Index 346 | Style: Heading 2 | Text: 2.4 Thiết kế cơ sở dữ liệu
+Index 347 | Style: Heading 3 | Text: 2.4.1 Các yêu cầu về dữ liệu
+Index 379 | Style: Heading 3 | Text: 2.4.2 Biểu đồ thực thể liên kết
+Index 381 | Style: Heading 3 | Text: 2.4.3 Thiết kế các bảng cơ sở dữ liệu
+Index 398 | Style: Heading 2 | Text: 2.5 Hình dung màn hình
+Index 405 | Style: Heading 1 | Text: CHƯƠNG 3. CÀI ĐẶT VÀ TRIỂN KHAI
+Index 406 | Style: Normal | Text: 3.1 Môi trường và yêu cầu hệ thống
+Index 407 | Style: Normal | Text: 3.1.1 Bối cảnh triển khai hệ thống
+Index 416 | Style: Normal | Text: 3.1.2 Môi trường phát triển hệ thống
+Index 424 | Style: Normal | Text: 3.1.3 Yêu cầu phần mềm phía backend
+Index 426 | Style: Normal | Text: 1. Kiến trúc tổng thể backend
+Index 438 | Style: Normal | Text: 2. Quản lý tài khoản và người dùng
+Index 450 | Style: Normal | Text: 3. Quản lý sản phẩm và danh mục
+Index 461 | Style: Normal | Text: 4. Xử lý giỏ hàng và đơn hàng
+Index 475 | Style: Normal | Text: 5. Hệ thống chatbot
+Index 495 | Style: Normal | Text: 3.1.4 Yêu cầu phần mềm phía frontend
+Index 506 | Style: Normal | Text: 3.1.5 Yêu cầu cơ sở dữ liệu
+Index 515 | Style: Heading 2 | Text: 3.2 Triển khai các chức năng hệ thống
+Index 516 | Style: Heading 3 | Text: 3.2.1 Chức năng thanh toán
+Index 528 | Style: Heading 3 | Text: 3.2.2 Chức năng quản trị hệ thống
+Index 542 | Style: Heading 2 | Text: 3.3 Triển khai chức năng Chatbot AI
+Index 543 | Style: Heading 3 | Text: 3.3.1 Tổng quan Chatbot AI
+Index 551 | Style: Heading 3 | Text: 3.3.2 Luồng xử lý chatbot
+Index 554 | Style: Heading 3 | Text: 3.3.3 Kết nối nhân viên hỗ trợ
+Index 564 | Style: Heading 1 | Text: CHƯƠNG 4. THỰC NGHIỆM VÀ ĐÁNH GIÁ
+Index 565 | Style: Heading 2 | Text: 4.1 Mục tiêu kiểm thử
+Index 572 | Style: Heading 2 | Text: 4.2 Phạm vi kiểm thử
+Index 580 | Style: Heading 2 | Text: 4.3 Chiến lược và phương pháp kiểm thử
+Index 586 | Style: Heading 2 | Text: 4.4 Kịch bản kiểm thử
+Index 587 | Style: Heading 3 | Text: 4.4.1 Kiểm thử chức năng
+Index 588 | Style: Normal | Text: 1. Kiểm thử chức năng đặt hàng
+Index 590 | Style: Normal | Text: 2. Kiểm thử chức năng quản lý tài khoản
+Index 592 | Style: Normal | Text: 3. Kiểm thử chức năng quản lý sản phẩm
+Index 594 | Style: Normal | Text: 4. Kiểm thử chức năng quản lý danh mục
+Index 596 | Style: Normal | Text: 5. Kiểm thử chức năng Chatbot AI hỗ trợ khách hàng
+Index 598 | Style: Heading 3 | Text: 4.4.2 Kiểm thử tương thích
+Index 599 | Style: Normal | Text: 1. Kiểm thử tương thích thiết bị
+Index 601 | Style: Normal | Text: 2. Kiểm thử tương thích trình duyệt
+Index 603 | Style: Normal | Text: 3. Kiểm thử tương thích hệ điều hành
+Index 622 | Style: Heading 1 | Text: KẾT LUẬN
+Index 642 | Style: Heading 1 | Text: TÀI LIỆU THAM KHẢO

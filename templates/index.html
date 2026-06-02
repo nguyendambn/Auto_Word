@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Word By Van Dam (Ủng hộ tôi 2562207069 BIDV)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="app-layout">
+    <!-- Navbar / Header -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-logo"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div class="brand-text">
+                <h1>Auto- Word <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">(By Nguyen Van Dam)</span></h1>
+                <span>Đại học Công nghiệp Hà Nội</span>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <button id="themeToggle" class="icon-btn theme-btn" title="Chuyển chế độ Sáng/Tối">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-workspace">
+        <!-- Sidebar Controls -->
+        <aside class="control-panel">
+            <div class="panel-scroll">
+                
+                <!-- Upload Zone -->
+                <div class="control-section upload-section">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon-wrapper"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <h3>Kéo thả file .docx vào đây</h3>
+                        <p>hoặc click để chọn tệp</p>
+                        <input type="file" id="fileInput" accept=".docx" hidden>
+                    </div>
+                    <div class="file-details" id="fileDetails" style="display:none;">
+                        <div class="file-info-inner">
+                            <div class="file-icon-box"><i class="fa-solid fa-file-word"></i></div>
+                            <div class="file-text">
+                                <span class="file-name" id="fileName">document.docx</span>
+                                <span class="file-size" id="fileSize">0 KB</span>
+                            </div>
+                        </div>
+                        <button class="icon-btn remove-btn" id="removeFileBtn" title="Xóa tệp"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="control-section">
+                    <h2 class="section-title">Mẫu định dạng</h2>
+                    <div class="preset-grid">
+                        <button class="preset-btn active" data-preset="dakltn">
+                            <i class="fa-solid fa-graduation-cap"></i> ĐA / KLTN HaUI
+                        </button>
+                        <button class="preset-btn" data-preset="custom">
+                            <i class="fa-solid fa-sliders"></i> Tùy chỉnh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Settings Tabs -->
+                <div class="settings-container">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="tab-layout"><i class="fa-solid fa-border-all"></i> Khổ giấy</button>
+                        <button class="tab-btn" data-tab="tab-typo"><i class="fa-solid fa-font"></i> Chữ & Đoạn</button>
+                        <button class="tab-btn" data-tab="tab-heading"><i class="fa-solid fa-heading"></i> Tiêu đề</button>
+                    </div>
+
+                    <!-- Layout Tab -->
+                    <div class="tab-content active" id="tab-layout">
+                        <div class="input-group">
+                            <div class="label-row">
+                                <label>Lề trên</label>
+                                <span class="val-badge"><span id="val-marginTop">25</span> mm</span>
+                            </div>
+                            <input type="range" class="custom-range" id="marginTop" min="10" max="50" value="25">
+                        </div>
+                        <div class="input-group">
+                            <div class="label-row">
+                                <label>Lề dưới</label>
+                                <span class="val-badge"><span id="val-marginBottom">20</span> mm</span>
+                            </div>
+                            <input type="range" class="custom-range" id="marginBottom" min="10" max="50" value="20">
+                        </div>
+                        <div class="input-group">
+                            <div class="label-row">
+                                <label>Lề trái</label>
+                                <span class="val-badge"><span id="val-marginLeft">35</span> mm</span>
+                            </div>
+                            <input type="range" class="custom-range" id="marginLeft" min="15" max="60" value="35">
+                        </div>
+                        <div class="input-group">
+                            <div class="label-row">
+                                <label>Lề phải</label>
+                                <span class="val-badge"><span id="val-marginRight">20</span> mm</span>
+                            </div>
+                            <input type="range" class="custom-range" id="marginRight" min="10" max="40" value="20">
+                        </div>
+                    </div>
+
+                    <!-- Typo Tab -->
+                    <div class="tab-content" id="tab-typo">
+                        <div class="input-group">
+                            <label>Phông chữ</label>
+                            <div class="custom-select-wrapper">
+                                <select class="custom-select" id="fontName">
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Calibri">Calibri</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Cỡ chữ (pt)</label>
+                                <input type="number" class="custom-input" id="bodySize" min="9" max="18" value="14" step="0.5">
+                            </div>
+                            <div class="input-group">
+                                <label>Giãn dòng</label>
+                                <input type="number" class="custom-input" id="lineSpacing" min="1.0" max="3.0" value="1.5" step="0.05">
+                            </div>
+                            <div class="input-group">
+                                <label>Cách trên (pt)</label>
+                                <input type="number" class="custom-input" id="spaceBefore" min="0" max="24" value="0">
+                            </div>
+                            <div class="input-group">
+                                <label>Cách dưới (pt)</label>
+                                <input type="number" class="custom-input" id="spaceAfter" min="0" max="24" value="0">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Thụt dòng đầu (mm)</label>
+                            <input type="number" class="custom-input" id="firstLineIndent" min="0" max="20" value="10">
+                        </div>
+                        <div class="input-group">
+                            <label>Căn lề đoạn</label>
+                            <div class="custom-select-wrapper">
+                                <select class="custom-select" id="alignment">
+                                    <option value="justify">Justify (Đều 2 bên)</option>
+                                    <option value="left">Left (Trái)</option>
+                                    <option value="center">Center (Giữa)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="contextualSpacing" checked>
+                            <div class="toggle-slider"></div>
+                            <span class="toggle-label">Không giãn khoảng cách các đoạn cùng kiểu (Don't add space)</span>
+                        </label>
+                    </div>
+
+                    <!-- Heading Tab -->
+                    <div class="tab-content" id="tab-heading">
+                        <label class="toggle-switch push-bottom">
+                            <input type="checkbox" id="autoNumberHeadings" checked>
+                            <div class="toggle-slider"></div>
+                            <span class="toggle-label">Tự động đánh số cấp Tiêu đề</span>
+                        </label>
+
+                        <!-- Heading 1 -->
+                        <div class="heading-card">
+                            <div class="hc-header">Heading 1</div>
+                            <div class="hc-body">
+                                <div class="input-group row-group">
+                                    <label>Cỡ chữ (pt)</label>
+                                    <input type="number" class="custom-input small" id="heading1Size" value="14">
+                                </div>
+                                <div class="hc-toggles">
+                                    <label class="toggle-switch small-switch">
+                                        <input type="checkbox" id="heading1Bold" checked>
+                                        <div class="toggle-slider"></div>
+                                        <span class="toggle-label">In đậm</span>
+                                    </label>
+                                    <label class="toggle-switch small-switch">
+                                        <input type="checkbox" id="heading1Uppercase" checked>
+                                        <div class="toggle-slider"></div>
+                                        <span class="toggle-label">IN HOA</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Heading 2 -->
+                        <div class="heading-card">
+                            <div class="hc-header">Heading 2</div>
+                            <div class="hc-body">
+                                <div class="input-group row-group">
+                                    <label>Cỡ chữ (pt)</label>
+                                    <input type="number" class="custom-input small" id="heading2Size" value="14">
+                                </div>
+                                <div class="hc-toggles">
+                                    <label class="toggle-switch small-switch">
+                                        <input type="checkbox" id="heading2Bold" checked>
+                                        <div class="toggle-slider"></div>
+                                        <span class="toggle-label">In đậm</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Heading 3 -->
+                        <div class="heading-card">
+                            <div class="hc-header">Heading 3</div>
+                            <div class="hc-body">
+                                <div class="input-group row-group">
+                                    <label>Cỡ chữ (pt)</label>
+                                    <input type="number" class="custom-input small" id="heading3Size" value="14">
+                                </div>
+                                <div class="hc-toggles">
+                                    <label class="toggle-switch small-switch">
+                                        <input type="checkbox" id="heading3Italic">
+                                        <div class="toggle-slider"></div>
+                                        <span class="toggle-label">In nghiêng</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="control-section">
+                    <h2 class="section-title">Nâng cao</h2>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="addPageNumbers" checked>
+                        <div class="toggle-slider"></div>
+                        <span class="toggle-label">Tự động đánh số trang</span>
+                    </label>
+                    <div class="info-note">
+                        <i class="fa-solid fa-circle-info"></i> Thiết lập chuẩn xác theo quy định đồ án/khóa luận của Đại học Công nghiệp Hà Nội.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Area -->
+            <div class="panel-action">
+                <button class="primary-btn" id="formatBtn" disabled>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Định dạng tự động</span>
+                </button>
+            </div>
+            
+            <div class="developer-info" style="text-align: center; padding: 12px 24px; font-size: 12px; color: var(--text-muted); background: var(--bg-surface); border-top: 1px solid var(--border-soft);">
+                Tool Word By Van Dam (Ủng hộ tôi <strong style="color: var(--primary);">2562207069 BIDV</strong>) <i class="fa-solid fa-heart" style="color: var(--danger); margin-left: 4px;"></i>
+            </div>
+
+        </aside>
+
+
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none;">
+    <div class="glass-loader">
+        <div class="loader-spinner"></div>
+        <h3 class="loader-title">Đang xử lý định dạng...</h3>
+        <p class="loader-step" id="progressStep">Đang chuẩn bị...</p>
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="progressBarInner" style="width:0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" style="display:none;">
+    <div class="toast-icon-wrapper"><i class="toast-icon" id="toastIcon"></i></div>
+    <div class="toast-body">
+        <span class="toast-title" id="toastTitle"></span>
+        <span class="toast-msg" id="toastMsg"></span>
+    </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
