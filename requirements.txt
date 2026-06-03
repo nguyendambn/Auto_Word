@@ -1,4 +1,3 @@
 flask
 pywebview
 python-docx
-gunicorn

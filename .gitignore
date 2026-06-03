@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+scratch/
+.idea/
+.vscode/
+*.docx
+~$*.docx

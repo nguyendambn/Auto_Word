@@ -9,6 +9,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 
 
 def add_page_number_field(run):
@@ -326,9 +327,13 @@ def get_para_special_type(p):
         "DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG",
         "DANH MỤC CÁC THUẬT NGỮ VIẾT TẮT", "DANH MỤC THUẬT NGỮ VIẾT TẮT",
         "DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT",
+        "DANH MỤC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT",
+        "DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT",
         "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC BANG BIEU", "DANH MUC BANG",
         "DANH MUC CAC THUAT NGU VIET TAT", "DANH MUC THUAT NGU VIET TAT",
-        "DANH MUC CAC THUAT NGU, KY HIEU VA CAC CHU VIET TAT"
+        "DANH MUC CAC THUAT NGU, KY HIEU VA CAC CHU VIET TAT",
+        "DANH MUC THUAT NGU, KY HIEU VA TU VIET TAT",
+        "DANH MUC CAC THUAT NGU, KY HIEU VA TU VIET TAT"
     ]:
         return "list"
         
@@ -779,6 +784,137 @@ def cleanup_document_whitespace(doc):
             print("Lỗi khi xóa đoạn văn rỗng:", e)
 
 
+def get_heading_level_from_style(style_val):
+    if not style_val:
+        return None
+    m = re.search(r'Heading\s*(\d)', style_val, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def split_paragraphs_on_soft_breaks(doc):
+    """
+    Tìm các paragraph có chứa ký tự xuống dòng mềm (\n) và tách chúng thành các đoạn văn riêng biệt.
+    Đồng thời tự động nâng cấp style của phần tiêu đề nếu có chứa thuộc tính Heading trong các run.
+    """
+    import copy
+    paragraphs = list(doc.paragraphs)
+    
+    for i in range(len(paragraphs) - 1, -1, -1):
+        p = paragraphs[i]
+        text = p.text
+        if "\n" not in text:
+            continue
+            
+        p_el = p._p
+        parent = p_el.getparent()
+        p_parent = p._parent
+        orig_style_name = p.style.name
+        
+        # Nhóm các run theo từng dòng văn bản
+        lines_runs = []
+        current_line = []
+        
+        for r in p.runs:
+            r_text = r.text
+            if "\n" in r_text:
+                parts = r_text.split("\n")
+                for idx, part in enumerate(parts):
+                    if idx > 0:
+                        lines_runs.append(current_line)
+                        current_line = []
+                    if part:
+                        new_r_el = copy.deepcopy(r._r)
+                        w_t = new_r_el.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+                        if w_t is not None:
+                            w_t.text = part
+                        from docx.text.run import Run
+                        new_run = Run(new_r_el, p)
+                        current_line.append(new_run)
+            else:
+                current_line.append(r)
+                
+        if current_line:
+            lines_runs.append(current_line)
+            
+        if len(lines_runs) <= 1:
+            continue
+            
+        # Xóa các runs cũ trong paragraph ban đầu và cập nhật dòng đầu tiên
+        p_el_clear = p._p
+        for r_el in list(p_el_clear.findall('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')):
+            p_el_clear.remove(r_el)
+            
+        first_line = lines_runs[0]
+        for r in first_line:
+            p_el_clear.append(r._r)
+            
+        # Nhận diện nếu dòng đầu tiên có style run chứa Heading
+        first_line_heading_level = None
+        for r in first_line:
+            rPr = r._r.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}rPr')
+            if rPr is not None:
+                rStyle = rPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}rStyle')
+                if rStyle is not None:
+                    style_val = rStyle.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
+                    lvl = get_heading_level_from_style(style_val)
+                    if lvl is not None:
+                        first_line_heading_level = lvl
+                        break
+                        
+        # Gán style cho đoạn đầu tiên
+        if orig_style_name.startswith('Heading'):
+            pass
+        elif first_line_heading_level is not None:
+            target_style = f"Heading {first_line_heading_level}"
+            try:
+                p.style = target_style
+            except Exception:
+                pPr = p_el_clear.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pPr')
+                if pPr is not None:
+                    pStyle = pPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pStyle')
+                    if pStyle is not None:
+                        pStyle.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val', target_style.replace(" ", ""))
+                        
+        # Thêm các đoạn văn phía sau
+        current_p_el = p_el
+        for line_idx in range(1, len(lines_runs)):
+            runs_in_line = lines_runs[line_idx]
+            new_p_el = OxmlElement('w:p')
+            
+            pPr = p_el.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pPr')
+            if pPr is not None:
+                new_pPr = copy.deepcopy(pPr)
+                # Xóa style cũ của đoạn văn gốc để gán style mới
+                pStyle = new_pPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pStyle')
+                if pStyle is not None:
+                    new_pPr.remove(pStyle)
+                new_p_el.append(new_pPr)
+                
+            for r in runs_in_line:
+                new_p_el.append(r._r)
+                
+            current_p_el.addnext(new_p_el)
+            current_p_el = new_p_el
+            
+            new_p = Paragraph(new_p_el, p_parent)
+            # Dòng tiếp theo không phải là heading mà là body text (Normal hoặc style gốc nếu gốc không phải heading)
+            target_style_name = 'Normal' if orig_style_name.startswith('Heading') else orig_style_name
+            try:
+                new_p.style = target_style_name
+            except Exception:
+                new_pPr = new_p_el.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pPr')
+                if new_pPr is None:
+                    new_pPr = OxmlElement('w:pPr')
+                    new_p_el.insert(0, new_pPr)
+                pStyle = new_pPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pStyle')
+                if pStyle is None:
+                    pStyle = OxmlElement('w:pStyle')
+                    new_pPr.append(pStyle)
+                pStyle.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val', target_style_name.replace(" ", ""))
+
+
 def merge_split_chapter_titles(doc):
     """
     Tìm các chương bị tách thành 2 dòng (Dòng 1: CHƯƠNG X, Dòng 2: Tên chương)
@@ -826,6 +962,33 @@ def merge_split_chapter_titles(doc):
                 logging.warning(f"Silent error ignored: {e}")
 
 
+def get_cover_table(doc):
+    """
+    Tìm và trả về table trang bìa nếu có.
+    Table trang bìa thường là table đầu tiên của tài liệu, nằm ở section đầu tiên
+    và chứa các từ khóa đặc trưng của trang bìa.
+    """
+    if not doc.tables:
+        return None
+    
+    first_table = doc.tables[0]
+    
+    # Kiểm tra xem table này có chứa các từ khóa đặc trưng của bìa không
+    text_content = ""
+    for row in first_table.rows:
+        for cell in row.cells:
+            text_content += cell.text + " "
+            
+    text_upper = text_content.upper()
+    keywords = ["TRƯỜNG ĐẠI HỌC", "BỘ CÔNG THƯƠNG", "BỘ GIÁO DỤC", "ĐỒ ÁN", "KHOÁ LUẬN", "LUẬN VĂN", "BÁO CÁO", "GVHD", "GVPB", "SINH VIÊN", "HÀ NỘI"]
+    match_count = sum(1 for kw in keywords if kw in text_upper)
+    
+    # Nếu chứa từ 2 từ khóa trở lên, khả năng cao là table trang bìa
+    if match_count >= 2:
+        return first_table
+    return None
+
+
 def format_document(input_path, output_path, opts):
     """
     Định dạng tài liệu Word (.docx) dựa trên dictionary cấu hình opts.
@@ -833,6 +996,7 @@ def format_document(input_path, output_path, opts):
     các thành phần hành chính theo Nghị định 30/2020/NĐ-CP, đánh số trang.
     """
     doc = Document(input_path)
+    cover_table = get_cover_table(doc)
 
     # --- 0. XÓA SẠCH MỌI SỐ TRANG CŨ VÀ HEADERS/FOOTERS ---
     try:
@@ -846,6 +1010,12 @@ def format_document(input_path, output_path, opts):
                 logging.warning(f"Silent error ignored: {e}")
     except Exception as e:
         print("Lỗi khi xóa sạch header/footer cũ:", e)
+
+    # --- 0. TÁCH CÁC DÒNG XUỐNG DÒNG MỀM CHỨA HEADING / PHÂN TÁCH PARAGRAPH ---
+    try:
+        split_paragraphs_on_soft_breaks(doc)
+    except Exception as e:
+        print("Lỗi khi tách soft break:", e)
 
     # --- 0. GỘP TIÊU ĐỀ CHƯƠNG BỊ TÁCH DÒNG ---
     try:
@@ -909,7 +1079,7 @@ def format_document(input_path, output_path, opts):
         print("Lỗi khi phân tách section trang bìa:", e)
         cover_paras = []
 
-    if cover_paras:
+    if cover_paras and cover_table is None:
         try:
             # Thêm viền trang bìa cho section đầu tiên
             add_cover_page_border(doc, doc.sections[0])
@@ -1382,9 +1552,12 @@ def format_document(input_path, output_path, opts):
     except Exception as e:
         print("Lỗi phân nhóm section cho paragraph loop:", e)
 
-    cover_paras_set = {p._p for p in cover_paras}
+    cover_paras_set = {p._p for p in cover_paras} if cover_table is None else set()
     for p in doc.paragraphs:
         if p._p in cover_paras_set:
+            continue
+        # Nếu có cover_table, bỏ qua không định dạng các paragraph trống thuộc section cover
+        if cover_table is not None and para_section_type.get(p._p) == "cover":
             continue
         # Xóa toàn bộ ngắt trang thủ công (br type="page") trong XML của paragraph
         for br in p._p.xpath('.//*[local-name()="br" and @*[local-name()="type"]="page"]'):
@@ -1518,11 +1691,15 @@ def format_document(input_path, output_path, opts):
             "lời cảm ơn", "lời cam đoan", "danh mục hình ảnh", "danh mục bảng biểu",
             "danh mục các thuật ngữ viết tắt", "danh mục thuật ngữ viết tắt",
             "danh mục các thuật ngữ, ký hiệu và các chữ viết tắt",
+            "danh mục thuật ngữ, ký hiệu và từ viết tắt",
+            "danh mục các thuật ngữ, ký hiệu và từ viết tắt",
             "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu",
             "kết luận", "tài liệu tham khảo", "phụ lục",
             "loi cam on", "loi cam doan", "danh muc hinh anh", "danh muc bang bieu",
             "danh muc cac thuat ngu viet tat", "danh muc thuat ngu viet tat",
             "danh muc cac thuat ngu, ky hieu va cac chu viet tat",
+            "danh muc thuat ngu, ky hieu va tu viet tat",
+            "danh muc cac thuat ngu, ky hieu va tu viet tat",
             "mo dau", "phan mo dau", "loi mo dau", "loi noi dau",
             "ket luan", "tai lieu tham khao", "phu luoc", "phu luc"
         ]
@@ -1572,6 +1749,17 @@ def format_document(input_path, output_path, opts):
                             heading_level = lvl
                     except ValueError:
                         pass
+            # --- KHỬ NHẬN DIỆN NHẦM HEADING (DECLASSIFICATION RULES) ---
+            # Luật 2: Nếu nhận diện là Heading bằng từ khóa/pattern số nhưng style thực tế là Normal/Body và quá dài (> 100 kí tự)
+            if heading_level is not None and not style_name.startswith('Heading'):
+                if len(text) > 100:
+                    heading_level = None
+
+            # Luật 1: Nếu style thực tế là Heading nhưng text không khớp pattern số heading và quá dài (> 150 kí tự)
+            if heading_level is not None and style_name.startswith('Heading'):
+                has_pattern = re.match(r'^(\d+(?:\.\d+)+|CHƯƠNG\s+[IVX\d]+|I{1,3}\.)\b', text, re.IGNORECASE) is not None
+                if not has_pattern and len(text) > 150:
+                    heading_level = None
             
             if heading_level == 1:
                 is_h1 = True
@@ -1863,7 +2051,9 @@ def format_document(input_path, output_path, opts):
                             if r.text:
                                 r.text = r.text.strip(' \t\n\r ')
                     else:
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        # Chỉ thay đổi căn lề nếu ban đầu không phải là Center hoặc Right để bảo vệ tiêu đề/căn lề đặc biệt
+                        if paragraph.alignment not in [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.RIGHT]:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                         paragraph.paragraph_format.first_line_indent = Pt(0)
                         paragraph.paragraph_format.left_indent = None
                         paragraph.paragraph_format.right_indent = None
@@ -1891,6 +2081,8 @@ def format_document(input_path, output_path, opts):
                     format_table_recursive(nested_tbl)
 
     for table in doc.tables:
+        if cover_table is not None and table == cover_table:
+            continue
         format_table_recursive(table)
 
     # --- 5. ĐÁNH SỐ TRANG ---
@@ -1973,7 +2165,9 @@ def format_document(input_path, output_path, opts):
             _ct = re.sub(r'\s+', ' ', _tu)
             if _ct in ['DANH MỤC HÌNH ẢNH', 'DANH MỤC HÌNH', 'DANH MỤC BẢNG BIỂU', 'DANH MỤC BẢNG', 'MỤC LỤC',
                         'DANH MỤC CÁC THUẬT NGỮ VIẾT TẮT', 'DANH MỤC THUẬT NGỮ VIẾT TẮT',
-                        'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT']:
+                        'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT',
+                        'DANH MỤC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT',
+                        'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT']:
                 _j = _i + 1
                 while _j < len(_all_paras):
                     _np = _all_paras[_j]

@@ -3,16 +3,8 @@ import io
 import tempfile
 import threading
 from flask import Flask, render_template, request, send_file, jsonify
+import webview
 from docx_processor import format_document
-
-IS_VERCEL = os.environ.get('VERCEL') == '1'
-webview = None
-if not IS_VERCEL:
-    try:
-        import webview
-    except ImportError:
-        pass
-
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
