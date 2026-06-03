@@ -1622,7 +1622,7 @@ def format_document(input_path, output_path, opts):
 
         # --- XỬ LÝ HÌNH ẢNH & BẢNG BIỂU ---
         # Căn giữa hình ảnh (sử dụng hàm kiểm tra namespace-agnostic)
-        if paragraph_has_image(p):
+        if paragraph_has_image(p) and not text:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.first_line_indent = Pt(0)
             p.paragraph_format.left_indent = Pt(0)
