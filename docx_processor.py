@@ -604,15 +604,22 @@ def make_caption_paragraph(p, label, chapter, seq_num, text_content, font_name, 
     # 3. Phần mô tả phía sau (Ví dụ: ". Logo công ty")
     r_text = p.add_run(f". {text_content}")
     
-    # Áp dụng font và để thừa kế kiểu chữ nghiêng từ Caption style sheet
+    # Áp dụng font cỡ chữ 14, nghiêng, không in đậm cho chú thích hình/bảng
     for r in p.runs:
-        set_run_font(r, font_name, font_size)
-        r.bold = None
-        r.italic = None
-        try: r.font.cs_bold = None
-        except Exception: pass
-        try: r.font.cs_italic = None
-        except Exception: pass
+        set_run_font(r, font_name, 14, bold=False, italic=True)
+        rPr = r.element.get_or_add_rPr()
+        for tag in ['w:b', 'w:bCs']:
+            el = rPr.find(qn(tag))
+            if el is None:
+                el = OxmlElement(tag)
+                rPr.append(el)
+            el.set(qn('w:val'), '0')
+        for tag in ['w:i', 'w:iCs']:
+            el = rPr.find(qn(tag))
+            if el is None:
+                el = OxmlElement(tag)
+                rPr.append(el)
+            el.set(qn('w:val'), '1')
 
 
 def is_directory_line(text):
@@ -1542,7 +1549,7 @@ def format_document(input_path, output_path, opts):
         if 'Caption' in doc.styles:
             cap_style = doc.styles['Caption']
             cap_style.font.name = font_name
-            cap_style.font.size = Pt(body_size)
+            cap_style.font.size = Pt(14)
             cap_style.font.bold = False
             cap_style.font.italic = True
             
@@ -1687,7 +1694,7 @@ def format_document(input_path, output_path, opts):
             fig_cnt += 1
             clean = re.sub(r'^(Hình|Ảnh)\s*[\d\.\-\s:]*', '', text, flags=re.IGNORECASE).strip().lstrip(':. ')
             effective_h1 = heading_counters[0] if heading_counters[0] > 0 else 1
-            make_caption_paragraph(p, "Hình", effective_h1, fig_cnt, clean, font_name, body_size)
+            make_caption_paragraph(p, "Hình", effective_h1, fig_cnt, clean, font_name, 14)
             safe_set_style(doc, p, 'Caption')
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.first_line_indent = None
@@ -1703,7 +1710,7 @@ def format_document(input_path, output_path, opts):
             tbl_cnt += 1
             clean = re.sub(r'^Bảng\s*[\d\.\-\s:]*', '', text, flags=re.IGNORECASE).strip().lstrip(':. ')
             effective_h1 = heading_counters[0] if heading_counters[0] > 0 else 1
-            make_caption_paragraph(p, "Bảng", effective_h1, tbl_cnt, clean, font_name, body_size)
+            make_caption_paragraph(p, "Bảng", effective_h1, tbl_cnt, clean, font_name, 14)
             safe_set_style(doc, p, 'Caption')
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.first_line_indent = None
