@@ -661,8 +661,8 @@ def is_directory_line(text):
     Kiểm tra xem một dòng có phải là một mục của mục lục hoặc danh mục hay không
     (dựa trên sự xuất hiện của dấu chấm lửng ... hoặc số trang ở cuối dòng kèm tab/nhiều khoảng trắng).
     """
-    # Nếu chứa dấu chấm lửng (từ 2 dấu chấm liên tiếp trở lên)
-    if '..' in text:
+    # Nếu chứa dấu chấm lửng (từ 3 dấu chấm liên tiếp trở lên để tránh nhầm placeholder Hình X..)
+    if '...' in text:
         return True
     # Nếu kết thúc bằng Tab và số trang
     if re.search(r'\t\s*\d+$', text):
@@ -849,6 +849,12 @@ def cleanup_document_whitespace(doc, skip_paras=None):
             
             if not has_sect:
                 paras_to_remove.append(p)
+            else:
+                # Nếu là đoạn rỗng chứa sectPr (không thể xóa) nhưng mang style Heading,
+                # ta đổi nó về Normal để tránh hiển thị dòng trống trong mục lục tự động
+                style_name = p.style.name if p.style else 'Normal'
+                if style_name.startswith('Heading') or 'TOC' in style_name:
+                    safe_set_style(doc, p, 'Normal')
                 
     for p in paras_to_remove:
         try:
@@ -858,6 +864,198 @@ def cleanup_document_whitespace(doc, skip_paras=None):
                 parent.remove(p_el)
         except Exception as e:
             print("Lỗi khi xóa đoạn văn rỗng:", e)
+
+
+def is_fig_caption_text(text, in_front_matter=False):
+    if in_front_matter or is_directory_line(text) or len(text) >= 200:
+        return False
+    m = re.match(r'^(Hình|Ảnh)\s*(.*)', text, re.IGNORECASE)
+    if m:
+        rest = m.group(2).strip()
+        if rest and (rest[0].isdigit() or rest[0] in 'IVX'):
+            return True
+    return False
+
+
+def is_tbl_caption_text(text, in_front_matter=False):
+    if in_front_matter or is_directory_line(text) or len(text) >= 200:
+        return False
+    m = re.match(r'^(Bảng)\s*(.*)', text, re.IGNORECASE)
+    if m:
+        rest = m.group(2).strip()
+        if rest and (rest[0].isdigit() or rest[0] in 'IVX'):
+            return True
+    return False
+
+
+def split_images_from_captions(doc, format_cover=True, skip_paras=None):
+    if skip_paras is None:
+        skip_paras = set()
+    
+    paragraphs = list(doc.paragraphs)
+    for p in paragraphs:
+        if p._p in skip_paras:
+            continue
+        text = p.text.strip()
+        is_fig = is_fig_caption_text(text)
+        if is_fig and paragraph_has_image(p):
+            # Create a new paragraph before p
+            p_el = p._p
+            parent = p_el.getparent()
+            new_p_el = OxmlElement('w:p')
+            parent.insert(parent.index(p_el), new_p_el)
+            new_p = Paragraph(new_p_el, doc)
+            
+            runs_to_move = []
+            for r in p.runs:
+                r_imgs = r.element.xpath('.//*[local-name()="drawing" or local-name()="pict" or local-name()="inline" or local-name()="graphic" or local-name()="imagedata" or local-name()="pic" or local-name()="object"]')
+                if len(r_imgs) > 0:
+                    runs_to_move.append(r)
+            
+            for r in runs_to_move:
+                p._p.remove(r.element)
+                new_p._p.append(r.element)
+
+
+def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
+    if skip_paras is None:
+        skip_paras = set()
+        
+    split_images_from_captions(doc, format_cover, skip_paras)
+    
+    pass_cnt = 0
+    while pass_cnt < 50:
+        pass_cnt += 1
+        moved = False
+        body = doc.element.body
+        children = list(body)
+        
+        in_front_matter_directory = False
+        element_is_in_front_matter = {}
+        
+        for child in children:
+            if child.tag.endswith('}p'):
+                p = Paragraph(child, doc)
+                text = p.text.strip()
+                
+                text_lower = text.lower()
+                is_directory_title = False
+                if len(text) < 100:
+                    if "mục lục" in text_lower or "muc luc" in text_lower:
+                        is_directory_title = True
+                    elif len(text) < 60 and (text_lower.startswith("danh mục") or text_lower.startswith("danh muc")):
+                        if any(x in text_lower for x in ["hình", "hinh", "bảng", "bang", "ký hiệu", "ky hieu", "viết tắt", "viet tat", "thuật ngữ", "thuat ngu"]):
+                            is_directory_title = True
+                if is_directory_title:
+                    in_front_matter_directory = True
+                    
+                style_name = p.style.name if p.style else 'Normal'
+                text_upper = text.upper()
+                is_real_heading = False
+                if style_name.startswith('Heading'):
+                    is_real_heading = True
+                if not is_real_heading:
+                    if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
+                        is_real_heading = True
+                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "TÀI LIỆU THAM KHẢO"]:
+                        is_real_heading = True
+                if is_real_heading and not is_directory_line(text):
+                    in_front_matter_directory = False
+                    
+            element_is_in_front_matter[child] = in_front_matter_directory
+            
+        for i, child in enumerate(children):
+            if not child.tag.endswith('}p'):
+                continue
+                
+            p = Paragraph(child, doc)
+            if p._p in skip_paras:
+                continue
+                
+            text = p.text.strip()
+            in_front_matter = element_is_in_front_matter.get(child, False)
+            
+            is_fig = is_fig_caption_text(text, in_front_matter)
+            is_tbl = is_tbl_caption_text(text, in_front_matter)
+            
+            if is_fig:
+                image_above = False
+                for j in range(i-1, max(-1, i-4), -1):
+                    prev_child = children[j]
+                    prev_tag = prev_child.tag.split('}')[-1]
+                    if prev_tag == 'p':
+                        prev_p = Paragraph(prev_child, doc)
+                        if paragraph_has_image(prev_p):
+                            image_above = True
+                            break
+                        elif prev_p.text.strip():
+                            break
+                    elif prev_tag == 'tbl':
+                        break
+                        
+                if not image_above:
+                    img_el = None
+                    for j in range(i+1, min(i+4, len(children))):
+                        next_child = children[j]
+                        next_tag = next_child.tag.split('}')[-1]
+                        if next_tag == 'p':
+                            next_p = Paragraph(next_child, doc)
+                            if paragraph_has_image(next_p):
+                                img_el = next_child
+                                break
+                            elif next_p.text.strip():
+                                break
+                        elif next_tag == 'tbl':
+                            break
+                            
+                    if img_el is not None:
+                        body.remove(child)
+                        new_img_idx = body.index(img_el)
+                        body.insert(new_img_idx + 1, child)
+                        moved = True
+                        break
+                        
+            elif is_tbl:
+                table_below = False
+                for j in range(i+1, min(i+4, len(children))):
+                    next_child = children[j]
+                    next_tag = next_child.tag.split('}')[-1]
+                    if next_tag == 'tbl':
+                        table_below = True
+                        break
+                    elif next_tag == 'p':
+                        next_p = Paragraph(next_child, doc)
+                        if paragraph_has_image(next_p):
+                            table_below = True
+                            break
+                        elif next_p.text.strip():
+                            break
+                            
+                if not table_below:
+                    tbl_or_img_el = None
+                    for j in range(i-1, max(-1, i-4), -1):
+                        prev_child = children[j]
+                        prev_tag = prev_child.tag.split('}')[-1]
+                        if prev_tag == 'tbl':
+                            tbl_or_img_el = prev_child
+                            break
+                        elif prev_tag == 'p':
+                            prev_p = Paragraph(prev_child, doc)
+                            if paragraph_has_image(prev_p):
+                                tbl_or_img_el = prev_child
+                                break
+                            elif prev_p.text.strip():
+                                break
+                                
+                    if tbl_or_img_el is not None:
+                        body.remove(child)
+                        new_tbl_idx = body.index(tbl_or_img_el)
+                        body.insert(new_tbl_idx, child)
+                        moved = True
+                        break
+                        
+        if not moved:
+            break
 
 
 def get_heading_level_from_style(style_val):
@@ -1133,6 +1331,12 @@ def format_document(input_path, output_path, opts):
         cleanup_document_whitespace(doc, skip_paras=skip_paras)
     except Exception as e:
         print("Lỗi khi dọn dẹp khoảng trắng:", e)
+
+    # --- 0. ĐIỀU CHỈNH VỊ TRÍ CHÚ THÍCH HÌNH VÀ BẢNG ---
+    try:
+        adjust_caption_positions(doc, format_cover=format_cover, skip_paras=skip_paras)
+    except Exception as e:
+        print("Lỗi khi điều chỉnh vị trí chú thích:", e)
 
     # --- 0. DỌN DẸP DÒNG CHÚ THÍCH THỦ CÔNG DƯỚI TIÊU ĐỀ DANH MỤC TRƯỚC ---
     try:
@@ -1764,8 +1968,8 @@ def format_document(input_path, output_path, opts):
             continue
 
         # Kiểm tra và định dạng chú thích Hình/Ảnh/Bảng tự động (tương thích danh mục động SEQ)
-        is_fig_caption = (not in_front_matter_directory) and (not is_directory_line(text)) and (len(text) < 200 and re.match(r'^(Hình|Ảnh)\b', text, re.IGNORECASE))
-        is_tbl_caption = (not in_front_matter_directory) and (not is_directory_line(text)) and (len(text) < 200 and re.match(r'^Bảng\b', text, re.IGNORECASE))
+        is_fig_caption = is_fig_caption_text(text, in_front_matter_directory)
+        is_tbl_caption = is_tbl_caption_text(text, in_front_matter_directory)
 
         if is_fig_caption:
             fig_cnt += 1
@@ -1825,6 +2029,9 @@ def format_document(input_path, output_path, opts):
             for k in h1_no_num_keywords
         ]
         is_h1_no_num = (len(text) < 80) and (text_lower_clean in h1_no_num_clean_keywords or is_directory_title)
+        if is_h1_no_num:
+            if re.match(r'^[\-\+\*•]', text.strip()) or text.rstrip().endswith(':'):
+                is_h1_no_num = False
 
         is_h1, is_h2, is_h3 = False, False, False
         heading_level = None
