@@ -500,7 +500,7 @@ def set_section_page_numbering(section, fmt=None, start=None):
 
 
 def parent_already_has_toc(parent, p_index, indicator):
-    """Kiểm tra xem trong vòng 2 phần tử tiếp theo đã có trường TOC tương ứng chưa."""
+    """Kiểm tra xem trong vòng 2 phần tử tiếp theo đã có trường TOC tương ứng chính xác chưa."""
     from lxml import etree
     xpath_func = etree.XPath('.//w:instrText', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
     for i in range(1, 3):
@@ -508,8 +508,16 @@ def parent_already_has_toc(parent, p_index, indicator):
             el = parent[p_index + i]
             instrs = xpath_func(el)
             for instr in instrs:
-                if instr.text and 'TOC' in instr.text and indicator in instr.text:
-                    return True
+                if instr.text and 'TOC' in instr.text:
+                    # Nếu indicator là Hình hoặc Bảng, kiểm tra khớp chính xác nhãn \c "Hình" hay \c "Bảng"
+                    if indicator in ["Hình", "Bảng"]:
+                        m = re.search(r'\\c\s*["\'\s]?([^"\'\s]+)["\'\s]?', instr.text)
+                        if m and m.group(1) == indicator:
+                            return True
+                    else:
+                        # Đối với mục lục (\o), chỉ cần chứa indicator
+                        if indicator in instr.text:
+                            return True
     return False
 
 
@@ -707,9 +715,10 @@ def is_toc_or_directory_paragraph(p):
 
 def remove_manual_entries_under_titles(doc):
     """
-    Xóa các dòng chú thích thủ công (không phải trường TOC động) nằm ngay dưới
+    Xóa các dòng chú thích thủ công (không phải trường TOC động chuẩn) nằm ngay dưới
     các tiêu đề DANH MỤC HÌNH ẢNH hoặc DANH MỤC BẢNG BIỂU để tránh trùng lặp.
     Dừng quét ngay lập tức nếu gặp bảng hoặc paragraph chứa ảnh thực tế.
+    Xóa cả các trường TOC cũ không đúng nhãn chuẩn (ví dụ "Hình 2.", "Hình 3." dưới danh mục hình ảnh).
     """
     body = doc.element.body
     children = list(body)
@@ -730,6 +739,13 @@ def remove_manual_entries_under_titles(doc):
         
         # Nếu gặp tiêu đề danh mục hình ảnh, bảng biểu hoặc mục lục
         if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "MỤC LỤC"]:
+            # Xác định nhãn chuẩn tương ứng
+            expected_label = None
+            if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH"]:
+                expected_label = "Hình"
+            elif clean_text in ["DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG"]:
+                expected_label = "Bảng"
+            
             j = i + 1
             while j < n:
                 next_child = children[j]
@@ -756,12 +772,12 @@ def remove_manual_entries_under_titles(doc):
                 next_text_upper = next_text.upper()
                 next_style = next_p.style.name if next_p.style else 'Normal'
                 
+                # Dừng quét khi gặp tiêu đề chương mới hoặc một tiêu đề danh mục tiếp theo
+                # Để an toàn, gặp bất kỳ Heading 1, 2, 3 thực sự nào mà không phải định dạng mục lục thì đều dừng
                 is_end_of_directory = False
-                if next_style == 'Heading 1' and next_text_upper not in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "MỤC LỤC"]:
+                if next_style.startswith('Heading') and not is_directory_line(next_text):
                     is_end_of_directory = True
                 elif (re.match(r'^CHƯƠNG\s+[IVX\d]+', next_text, re.IGNORECASE) or next_text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU"]) and not is_directory_line(next_text):
-                    is_end_of_directory = True
-                elif next_style in ['Heading 2', 'Heading 3'] and not is_directory_line(next_text):
                     is_end_of_directory = True
                     
                 if is_end_of_directory:
@@ -769,17 +785,36 @@ def remove_manual_entries_under_titles(doc):
                     
                 # Kiểm tra xem có chứa trường TOC động không
                 has_toc_field = False
+                has_valid_toc_field = False
                 from lxml import etree
                 xpath_func = etree.XPath('.//w:instrText', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
                 instrs = xpath_func(next_p._p)
                 for instr in instrs:
                     if instr.text and 'TOC' in instr.text:
                         has_toc_field = True
+                        # Kiểm tra xem có phải TOC chuẩn cho nhãn hiện tại không
+                        if expected_label in ["Hình", "Bảng"]:
+                            m = re.search(r'\\c\\s*["\'\\s]?([^"\'\\s]+)["\'\\s]?', instr.text)
+                            if m and m.group(1) == expected_label:
+                                has_valid_toc_field = True
+                        else:
+                            # Với Mục lục, trường TOC chuẩn chứa \o
+                            if '\\o' in instr.text:
+                                has_valid_toc_field = True
                         break
                         
-                if not has_toc_field:
+                # Quyết định xóa:
+                should_delete = False
+                if has_toc_field:
+                    if not has_valid_toc_field:
+                        should_delete = True  # Trường TOC cũ lỗi -> xóa
+                else:
+                    # Dòng chữ thường thì chỉ xóa nếu là định dạng mục lục hoặc bắt đầu bằng từ khóa danh mục
                     if is_directory_line(next_text) or re.match(r'^(Hình|Ảnh|Bảng|Chương|CHƯƠNG|\d+(\.\d+)*)\b', next_text, re.IGNORECASE):
-                        elements_to_remove.append(next_child)
+                        should_delete = True
+                        
+                if should_delete:
+                    elements_to_remove.append(next_child)
                 
                 j += 1
             i = j
