@@ -709,14 +709,22 @@ def remove_manual_entries_under_titles(doc):
     """
     Xóa các dòng chú thích thủ công (không phải trường TOC động) nằm ngay dưới
     các tiêu đề DANH MỤC HÌNH ẢNH hoặc DANH MỤC BẢNG BIỂU để tránh trùng lặp.
+    Dừng quét ngay lập tức nếu gặp bảng hoặc paragraph chứa ảnh thực tế.
     """
-    paragraphs_to_remove = []
+    body = doc.element.body
+    children = list(body)
+    n = len(children)
+    
+    elements_to_remove = []
     
     i = 0
-    paragraphs = list(doc.paragraphs)
-    n = len(paragraphs)
     while i < n:
-        p = paragraphs[i]
+        child = children[i]
+        if not child.tag.endswith('}p'):
+            i += 1
+            continue
+            
+        p = Paragraph(child, doc)
         text_upper = p.text.strip().upper()
         clean_text = re.sub(r'\s+', ' ', text_upper)
         
@@ -724,9 +732,23 @@ def remove_manual_entries_under_titles(doc):
         if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "MỤC LỤC"]:
             j = i + 1
             while j < n:
-                next_p = paragraphs[j]
+                next_child = children[j]
+                
+                # Nếu gặp bảng (tbl), chắc chắn đã hết danh mục -> dừng quét
+                if next_child.tag.endswith('}tbl'):
+                    break
+                    
+                if not next_child.tag.endswith('}p'):
+                    j += 1
+                    continue
+                    
+                next_p = Paragraph(next_child, doc)
                 next_text = next_p.text.strip()
                 
+                # Nếu gặp paragraph chứa ảnh thực tế -> dừng quét
+                if paragraph_has_image(next_p):
+                    break
+                    
                 if not next_text:
                     j += 1
                     continue
@@ -757,19 +779,18 @@ def remove_manual_entries_under_titles(doc):
                         
                 if not has_toc_field:
                     if is_directory_line(next_text) or re.match(r'^(Hình|Ảnh|Bảng|Chương|CHƯƠNG|\d+(\.\d+)*)\b', next_text, re.IGNORECASE):
-                        paragraphs_to_remove.append(next_p)
+                        elements_to_remove.append(next_child)
                 
                 j += 1
             i = j
         else:
             i += 1
             
-    for p in paragraphs_to_remove:
+    for el in elements_to_remove:
         try:
-            p_el = p._p
-            p_el.getparent().remove(p_el)
+            body.remove(el)
         except Exception as e:
-                logging.warning(f"Silent error ignored: {e}")
+            logging.warning(f"Silent error ignored: {e}")
 
 
 def clean_paragraph_whitespace(p):
@@ -948,6 +969,9 @@ def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
                             is_directory_title = True
                 if is_directory_title:
                     in_front_matter_directory = True
+                
+                if in_front_matter_directory and text and not is_directory_title and not is_directory_line(text):
+                    in_front_matter_directory = False
                     
                 style_name = p.style.name if p.style else 'Normal'
                 text_upper = text.upper()
@@ -1937,6 +1961,9 @@ def format_document(input_path, output_path, opts):
             for r in p.runs:
                 set_run_font(r, font_name, float(opts.get('heading1_size', 14)), bold=True, italic=False)
             continue
+            
+        if in_front_matter_directory and text and not is_directory_title and not is_muc_luc and not is_directory_line(text):
+            in_front_matter_directory = False
 
         # --- XỬ LÝ HÌNH ẢNH & BẢNG BIỂU ---
         # Căn giữa hình ảnh (sử dụng hàm kiểm tra namespace-agnostic)
@@ -2574,8 +2601,9 @@ def format_document(input_path, output_path, opts):
                 is_first_of_section = True
             
     # Loại bỏ các đoạn trống thừa ở cuối tài liệu (tránh tạo trang trắng ở cuối)
+    # Không xóa paragraph chứa hình ảnh
     for p in reversed(doc.paragraphs):
-        if not p.text.strip():
+        if not p.text.strip() and not paragraph_has_image(p):
             p_el = p._p
             p_el.getparent().remove(p_el)
         else:

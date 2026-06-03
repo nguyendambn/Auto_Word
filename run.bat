@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul 2>nul
 title Tool Word — Desktop Offline By Nguyen Van Dam
-Ủng hộ tôi 2562207069 Bidv
+Donate 2562207069 Bidv
 
 echo.
 echo  ╔══════════════════════════════════════════════════╗
