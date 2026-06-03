@@ -1,68 +1,3 @@
-# 📝 Auto-Word Formatter - Công Cụ Định Dạng Báo Cáo & Đồ Án Tốt Nghiệp Tự Động
-
-**Auto-Word Formatter** là một ứng dụng desktop ngoại tuyến (offline) mạnh mẽ được viết bằng **Python** và **JavaScript**, giúp tự động hóa toàn bộ quy trình căn lề, chỉnh sửa font chữ, dãn dòng, tạo đề mục, đánh số trang và định dạng bảng biểu cho các tài liệu Word (`.docx`). 
-
-Công cụ được tối ưu hóa đặc biệt cho đối tượng là sinh viên thực hiện đồ án tốt nghiệp, báo cáo kỹ thuật, luận văn thạc sĩ và nhân viên văn phòng cần định dạng văn bản hành chính chuẩn theo quy định của nhà nước Việt Nam.
-
----
-
-## 🌟 Các Chức Năng Chính
-
-### 1. Chuẩn Hóa Lề Trang & Khổ Giấy
-* Tự động chuyển đổi khổ giấy sang chuẩn **A4** (210mm x 297mm).
-* Thiết lập lề trang linh hoạt theo mm: **Lề trên/dưới** (mặc định 20mm), **Lề trái** (mặc định 30mm) phục vụ đóng gáy sách, **Lề phải** (mặc định 15mm).
-
-### 2. Định Dạng Văn Bản & Dãn Dòng Chuyên Nghiệp
-* Đồng nhất phông chữ toàn bộ tài liệu (mặc định **Times New Roman** hoặc phông tùy chọn).
-* Căn chỉnh cỡ chữ nội dung (mặc định 13pt), khoảng cách dãn dòng (mặc định 1.3 lines) và khoảng cách giữa các đoạn văn (Space Before/After).
-* Tự động thụt lề dòng đầu tiên của các đoạn văn (First Line Indent) và hỗ trợ căn lề đều hai bên (**Justify**) một cách tự nhiên.
-* Tự động căn giữa hình ảnh và chú thích ảnh.
-
-### 3. Nhận Diện & Đánh Số Đề Mục Tự Động (Heading Auto-numbering)
-* Tự động phân cấp các tiêu đề từ **Heading 1** đến **Heading 9**.
-* Thuật toán thông minh tự động nhận diện và gộp các tiêu đề chương bị tách làm 2 dòng (Dòng 1: `CHƯƠNG 1`, Dòng 2: `CƠ SỞ LÝ THUYẾT`) thành một tiêu đề duy nhất chứa dấu ngắt dòng mềm để hiển thị đẹp mắt trong Mục lục.
-* Xử lý thông minh các dòng xuống dòng mềm (`Shift+Enter`) chứa tiêu đề và nội dung bị gộp chung đoạn trong tài liệu gốc.
-* **Auto-numbering**: Đánh số thứ tự các mục tự động dạng phân cấp thụt lề (Ví dụ: `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.`) và tự động reset bộ đếm khi sang chương mới.
-* **Bộ lọc khử nhận diện nhầm**: Loại bỏ các đoạn văn bản thường nhưng định dạng chữ in đậm hoặc bắt đầu bằng số thứ tự giả lập khỏi danh sách tiêu đề.
-
-### 4. Đánh Số Trang Thông Minh (Dual Page Numbering)
-* Tự động phân tách tài liệu thành các Section riêng biệt: Trang bìa, Lời cảm ơn, Danh mục viết tắt/hình ảnh, Thân bài và Tài liệu tham khảo.
-* **Trang bìa**: Tự động nhận diện trang bìa dựa trên bảng khung viền (Cover Table) và ẩn hoàn toàn số trang.
-* **Phần danh mục đầu trang (Front Matter)**: Đánh số trang tự động dạng chữ số La Mã viết thường (`i`, `ii`, `iii`,...) theo đúng chuẩn học thuật.
-* **Phần thân bài (Body Text)**: Tự động đánh số trang bắt đầu từ **1** (chữ số Ả Rập) từ chương đầu tiên đến hết tài liệu.
-* Số trang được căn giữa hoàn hảo tại vị trí header hoặc footer theo chiều dọc.
-
-### 5. Định Dạng Hành Chính Chuẩn Nghị Định 30/2020/NĐ-CP
-* Tự động nhận diện và định dạng các thành phần hành chính quốc gia:
-  * **Quốc hiệu & Tiêu ngữ**: Căn giữa, in đậm/in nghiêng, cỡ chữ chuẩn và viết hoa.
-  * **Địa danh & Ngày tháng**: Căn phải, in nghiêng chuẩn quy định.
-  * **Nơi nhận**: Căn trái, cỡ chữ 11-12pt, in đậm, in nghiêng tiêu đề danh sách nhận.
-
-### 6. Căn Chỉnh Bảng Biểu & Chú Thích Tự Động
-* Tự động căn giữa tất cả các bảng biểu trong tài liệu.
-* Điều chỉnh font chữ, cỡ chữ, căn lề và độ dãn dòng trong các ô của bảng biểu (Table Cells) cho dễ nhìn hơn.
-* Nhận diện và tự động đánh số thứ tự chú thích hình ảnh, bảng biểu theo số chương hiện tại (Ví dụ: `Hình 1.1`, `Hình 1.2`, `Bảng 3.1`).
-
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-* **Backend**: Python 3.x
-  * `python-docx`: Thư viện đọc, chỉnh sửa và ghi cấu trúc XML của tệp tin Word.
-  * `lxml`: Xử lý trực tiếp các thẻ định dạng OpenXML của Microsoft Word.
-  * `Flask`: Cung cấp API xử lý định dạng tệp tin.
-  * `pywebview`: Đóng gói ứng dụng Flask thành phần mềm chạy cửa sổ Desktop chuyên nghiệp.
-* **Frontend**: HTML5, CSS3 (Vanilla), JavaScript (ES6+)
-  * Giao diện thiết kế theo phong cách hiện đại, hỗ trợ kéo thả tệp tin (Drag and Drop File), hiển thị tiến trình xử lý (Progress Bar).
-
----
-
-## 💻 Hướng Dẫn Cài Đặt & Sử Dụng
-
-### Yêu cầu hệ thống
-* Máy tính đã cài đặt **Python 3.10** trở lên.
-* Hệ điều hành: Windows, macOS hoặc Linux.
-
 ### Các bước cài đặt
 
 1. **Tải mã nguồn về máy hoặc Clone repository**:
@@ -92,6 +27,67 @@ Công cụ được tối ưu hóa đặc biệt cho đối tượng là sinh vi
   ```bash
   python app.py
   ```
+# 📝 Auto-Word Formatter by Van Dam - Công Cụ Định Dạng Báo Cáo & Đồ Án Tốt Nghiệp Tự Động
+
+**Auto-Word Formatter** là một ứng dụng desktop ngoại tuyến (offline) mạnh mẽ được viết bằng **Python** và **JavaScript**, giúp tự động hóa toàn bộ quy trình căn lề, chỉnh sửa font chữ, dãn dòng, tạo đề mục, đánh số trang và định dạng bảng biểu cho các tài liệu Word (`.docx`). 
+
+Công cụ được tối ưu hóa đặc biệt cho đối tượng là sinh viên thực hiện đồ án tốt nghiệp, báo cáo kỹ thuật, luận văn thạc sĩ và nhân viên văn phòng cần định dạng văn bản hành chính chuẩn theo quy định của Đại học công nghiệp Hà Nội
+
+---
+
+## 🌟 Các Chức Năng Chính
+
+### 1. Chuẩn Hóa Lề Trang & Khổ Giấy
+* Tự động chuyển đổi khổ giấy sang chuẩn **A4** (210mm x 297mm).
+* Thiết lập lề trang linh hoạt theo mm: **Lề trên/dưới** (mặc định 20mm), **Lề trái** (mặc định 30mm) phục vụ đóng gáy sách, **Lề phải** (mặc định 15mm).
+
+### 2. Định Dạng Văn Bản & Dãn Dòng Chuyên Nghiệp
+* Đồng nhất phông chữ toàn bộ tài liệu (mặc định **Times New Roman** hoặc phông tùy chọn).
+* Căn chỉnh cỡ chữ nội dung (mặc định 14pt), khoảng cách dãn dòng (mặc định 1.5 lines) và khoảng cách giữa các đoạn văn (Space Before/After là 0pt 0pt).
+* Tự động thụt lề dòng đầu tiên của các đoạn văn (First Line Indent) và hỗ trợ căn lề đều hai bên (**Justify**) một cách tự nhiên.
+* Tự động căn giữa hình ảnh và chú thích ảnh.
+
+### 3. Nhận Diện & Đánh Số Đề Mục Tự Động (Heading Auto-numbering)
+* Tự động phân cấp các tiêu đề từ **Heading 1** đến **Heading 9**.
+* Thuật toán thông minh tự động nhận diện và gộp các tiêu đề chương bị tách làm 2 dòng (Dòng 1: `CHƯƠNG 1`, Dòng 2: `CƠ SỞ LÝ THUYẾT`) thành một tiêu đề duy nhất chứa dấu ngắt dòng mềm để hiển thị đẹp mắt trong Mục lục.
+* Xử lý thông minh các dòng xuống dòng mềm (`Shift+Enter`) chứa tiêu đề và nội dung bị gộp chung đoạn trong tài liệu gốc.
+* **Auto-numbering**: Đánh số thứ tự các mục tự động dạng phân cấp thụt lề (Ví dụ: `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.`) và tự động reset bộ đếm khi sang chương mới.
+* **Bộ lọc khử nhận diện nhầm**: Loại bỏ các đoạn văn bản thường nhưng định dạng chữ in đậm hoặc bắt đầu bằng số thứ tự giả lập khỏi danh sách tiêu đề.
+
+### 4. Đánh Số Trang Thông Minh (Dual Page Numbering)
+* Tự động phân tách tài liệu thành các Section riêng biệt: Trang bìa, Lời cảm ơn, Danh mục viết tắt/hình ảnh, Thân bài và Tài liệu tham khảo.
+* **Trang bìa**: Tự động nhận diện trang bìa dựa trên bảng khung viền (Cover Table) và ẩn hoàn toàn số trang.
+* **Phần danh mục đầu trang (Front Matter)**: Đánh số trang tự động dạng chữ số La Mã viết thường (`i`, `ii`, `iii`,...) theo đúng chuẩn học thuật.
+* **Phần thân bài (Body Text)**: Tự động đánh số trang bắt đầu từ **1** (chữ số Ả Rập) từ phần mở đầu or chương 1  đến hết tài liệu( trừ tài liệu tham khảo).
+* Số trang được căn giữa hoàn hảo tại vị trí header hoặc footer theo chiều dọc.
+
+
+### 6. Căn Chỉnh Bảng Biểu & Chú Thích Tự Động
+* Tự động căn giữa tất cả các bảng biểu trong tài liệu.
+* Điều chỉnh font chữ, cỡ chữ, căn lề và độ dãn dòng trong các ô của bảng biểu (Table Cells) cho dễ nhìn hơn.
+* Nhận diện và tự động đánh số thứ tự chú thích hình ảnh, bảng biểu theo số chương hiện tại (Ví dụ: `Hình 1.1`, `Hình 1.2`, `Bảng 3.1`).
+
+---
+
+## 🛠️ Công Nghệ Sử Dụng
+
+* **Backend**: Python 3.x
+  * `python-docx`: Thư viện đọc, chỉnh sửa và ghi cấu trúc XML của tệp tin Word.
+  * `lxml`: Xử lý trực tiếp các thẻ định dạng OpenXML của Microsoft Word.
+  * `Flask`: Cung cấp API xử lý định dạng tệp tin.
+  * `pywebview`: Đóng gói ứng dụng Flask thành phần mềm chạy cửa sổ Desktop chuyên nghiệp.
+* **Frontend**: HTML5, CSS3 (Vanilla), JavaScript (ES6+)
+  * Giao diện thiết kế theo phong cách hiện đại, hỗ trợ kéo thả tệp tin (Drag and Drop File), hiển thị tiến trình xử lý (Progress Bar).
+
+---
+
+## 💻 Hướng Dẫn Cài Đặt & Sử Dụng
+
+### Yêu cầu hệ thống
+* Máy tính đã cài đặt **Python 3.10** trở lên.
+* Hệ điều hành: Windows, macOS hoặc Linux.
+
+
 
 Sau khi khởi chạy, một cửa sổ Desktop trực quan của công cụ sẽ hiện ra. Bạn chỉ cần chọn file Word cần định dạng, tùy chỉnh các thông số dãn dòng, cỡ chữ trên thanh công cụ bên trái và bấm **Bắt đầu định dạng**.
 
