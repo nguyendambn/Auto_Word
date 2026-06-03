@@ -335,6 +335,10 @@ def add_cover_page_border(doc, section):
 
 def get_para_special_type(p):
     """Nhận diện loại tiêu đề đặc biệt của đoạn văn để chia section."""
+    style_name = p.style.name if p.style else ''
+    if style_name == 'TOC Heading':
+        return "toc"
+        
     text = p.text.strip()
     if not text:
         return None
@@ -1615,7 +1619,8 @@ def format_document(input_path, output_path, opts):
         style_name = p.style.name if p.style else 'Normal'
 
         if not text and not paragraph_has_image(p):
-            continue
+            if style_name != 'TOC Heading':
+                continue
 
         # Kích hoạt không cách giữa các đoạn cùng style
         try:
@@ -1647,10 +1652,15 @@ def format_document(input_path, output_path, opts):
         # Kiểm tra Mục lục
         is_muc_luc = (text_upper == "MỤC LỤC" 
                       or text_upper.startswith("MỤC LỤC ") 
-                      or re.sub(r'[^a-z]', '', text.lower()) == "mucluc")
+                      or re.sub(r'[^a-z]', '', text.lower()) == "mucluc"
+                      or style_name == 'TOC Heading')
 
         if is_muc_luc:
             in_front_matter_directory = True
+            if not text:
+                p.text = "MỤC LỤC"
+                text = "MỤC LỤC"
+                text_upper = "MỤC LỤC"
             # MỤC LỤC: Không gán Heading, chỉ định dạng Normal, bold, centered, 14pt (hoặc cỡ chữ h1)
             safe_set_style(doc, p, 'Normal')
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
