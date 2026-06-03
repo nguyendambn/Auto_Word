@@ -214,6 +214,9 @@ def paragraph_has_image(p):
     return len(elements) > 0
 
 
+
+
+
 def center_floating_images(p):
     """
     Tìm tất cả các wp:anchor (ảnh dạng nổi) trong XML của paragraph,
@@ -1760,6 +1763,12 @@ def format_document(input_path, output_path, opts):
                 has_pattern = re.match(r'^(\d+(?:\.\d+)+|CHƯƠNG\s+[IVX\d]+|I{1,3}\.)\b', text, re.IGNORECASE) is not None
                 if not has_pattern and len(text) > 150:
                     heading_level = None
+
+            # Luật 3: Khử Heading 1 nhận diện nhầm (không có ký tự bắt đầu của Chương và không nằm trong H1 không đánh số)
+            if heading_level == 1 and not is_h1_no_num:
+                has_chapter_pattern = re.match(r'^(CHƯƠNG|Chương|[IVX\d]+)\b', text, re.IGNORECASE) is not None
+                if not has_chapter_pattern:
+                    heading_level = 2
             
             if heading_level == 1:
                 is_h1 = True
@@ -2055,8 +2064,8 @@ def format_document(input_path, output_path, opts):
                         if paragraph.alignment not in [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.RIGHT]:
                             paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                         paragraph.paragraph_format.first_line_indent = Pt(0)
-                        paragraph.paragraph_format.left_indent = None
-                        paragraph.paragraph_format.right_indent = None
+                        paragraph.paragraph_format.left_indent = Pt(0)
+                        paragraph.paragraph_format.right_indent = Pt(0)
                         
                         # Dọn dẹp khoảng trắng/tab ở đầu đoạn văn trong bảng
                         if paragraph.runs:
