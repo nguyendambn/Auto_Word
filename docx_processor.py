@@ -957,7 +957,7 @@ def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
                 if not is_real_heading:
                     if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                         is_real_heading = True
-                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "TÀI LIỆU THAM KHẢO"]:
+                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"]:
                         is_real_heading = True
                 if is_real_heading and not is_directory_line(text):
                     in_front_matter_directory = False
@@ -2012,14 +2012,14 @@ def format_document(input_path, output_path, opts):
             "danh mục thuật ngữ, ký hiệu và từ viết tắt",
             "danh mục các thuật ngữ, ký hiệu và từ viết tắt",
             "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu",
-            "kết luận", "tài liệu tham khảo", "phụ lục",
+            "kết luận", "kết luận chung", "kết luận và hướng phát triển", "tài liệu tham khảo", "phụ lục",
             "loi cam on", "loi cam doan", "danh muc hinh anh", "danh muc bang bieu",
             "danh muc cac thuat ngu viet tat", "danh muc thuat ngu viet tat",
             "danh muc cac thuat ngu, ky hieu va cac chu viet tat",
             "danh muc thuat ngu, ky hieu va tu viet tat",
             "danh muc cac thuat ngu, ky hieu va tu viet tat",
             "mo dau", "phan mo dau", "loi mo dau", "loi noi dau",
-            "ket luan", "tai lieu tham khao", "phu luoc", "phu luc"
+            "ket luan", "ket luan chung", "ket luan va huong phat trien", "tai lieu tham khao", "phu luoc", "phu luc"
         ]
         
         # Hàm kiểm tra xem có phải Heading 1 không đánh số hay không (phải là dòng ngắn và khớp với từ khóa)
