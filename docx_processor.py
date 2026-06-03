@@ -214,6 +214,32 @@ def paragraph_has_image(p):
     return len(elements) > 0
 
 
+def roman_to_int(s):
+    s = s.upper()
+    roman_map = {'I':1, 'V':5, 'X':10, 'L':50, 'C':100, 'D':500, 'M':1000}
+    val = 0
+    for i in range(len(s)):
+        if i > 0 and roman_map[s[i]] > roman_map[s[i-1]]:
+            val += roman_map[s[i]] - 2 * roman_map[s[i-1]]
+        else:
+            val += roman_map[s[i]]
+    return val
+
+
+def get_chapter_number(text):
+    m = re.match(r'^(?:CHƯƠNG|Chương)\s+([IVX\d]+)', text, re.IGNORECASE)
+    if m:
+        val = m.group(1)
+        if val.isdigit():
+            return int(val)
+        else:
+            try:
+                return roman_to_int(val)
+            except Exception:
+                return None
+    return None
+
+
 
 
 
@@ -1542,6 +1568,7 @@ def format_document(input_path, output_path, opts):
     do_admin = opts.get('format_admin_parts', False)
     in_recipients = False
     in_front_matter_directory = False
+    current_h1_is_no_num = False
 
     # --- 3. XỬ LÝ TỪNG PARAGRAPH ---
     para_section_type = {}
@@ -1770,6 +1797,15 @@ def format_document(input_path, output_path, opts):
                 if not has_chapter_pattern:
                     heading_level = 2
             
+            # Luật 4: Khử nhận diện nhầm tiêu đề chương trong phần bố cục/tóm tắt (nằm trong phần không đánh số như MỞ ĐẦU)
+            if heading_level == 1 and not is_h1_no_num and not style_name.startswith('Heading'):
+                if current_h1_is_no_num:
+                    ch_num = get_chapter_number(text)
+                    if ch_num is not None:
+                        expected_ch = heading_counters[0] + 1
+                        if ch_num > expected_ch or any(c.islower() for c in text):
+                            heading_level = None
+            
             if heading_level == 1:
                 is_h1 = True
             elif heading_level == 2:
@@ -1856,6 +1892,7 @@ def format_document(input_path, output_path, opts):
         # --- HEADINGS ---
         if is_h1:
             safe_set_style(doc, p, 'Heading 1')
+            current_h1_is_no_num = is_h1_no_num
 
             if not is_h1_no_num:
                 heading_counters[0] += 1
