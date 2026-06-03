@@ -1073,6 +1073,14 @@ def format_document(input_path, output_path, opts):
 
     # --- 0. PHÂN CHIA SECTION BREAKS DỰA TRÊN CẤU TRÚC VĂN BẢN ---
     if opts.get('add_page_numbers', True):
+        # Dọn dẹp tất cả các section break cũ trong paragraph để tránh trùng lặp khi định dạng lại nhiều lần
+        for p in doc.paragraphs:
+            pPr = p._p.find(qn('w:pPr'))
+            if pPr is not None:
+                sectPr = pPr.find(qn('w:sectPr'))
+                if sectPr is not None:
+                    pPr.remove(sectPr)
+
         trigger_paras = []
         last_type = "cover"
         ORDER = ["cover", "thanks", "toc", "list", "body", "references"]
@@ -2259,8 +2267,19 @@ def format_document(input_path, output_path, opts):
     # Loại bỏ page_break_before ở các đoạn bắt đầu section mới (đã có section break) để tránh sinh ra 2 trang trắng liên tiếp
     # Section break đã đảm bảo paragraph bắt đầu ở trang mới, nên page_break_before phải tắt để tránh tạo trang trắng đôi
     if opts.get('add_page_numbers', True):
+        # 1. Tắt page_break_before cho trigger_paras
         for p in trigger_paras:
             p.paragraph_format.page_break_before = False
+            
+        # 2. Tắt page_break_before cho bất kỳ paragraph nào đứng ngay sau một section break (đầu của một section mới)
+        is_first_of_section = True
+        for p in doc.paragraphs:
+            if is_first_of_section:
+                p.paragraph_format.page_break_before = False
+                is_first_of_section = False
+            pPr = p._p.find(qn('w:pPr'))
+            if pPr is not None and pPr.find(qn('w:sectPr')) is not None:
+                is_first_of_section = True
             
     # Loại bỏ các đoạn trống thừa ở cuối tài liệu (tránh tạo trang trắng ở cuối)
     for p in reversed(doc.paragraphs):
