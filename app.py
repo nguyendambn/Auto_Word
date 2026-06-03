@@ -51,6 +51,7 @@ def api_format():
             'auto_number_headings': request.form.get('auto_number_headings') == 'true',
             'format_admin_parts':   request.form.get('format_admin_parts') == 'true',
             'add_page_numbers':     request.form.get('add_page_numbers') == 'true',
+            'format_cover':         request.form.get('format_cover') == 'true',
             'alignment':            request.form.get('alignment', 'justify'),
             'contextual_spacing':   request.form.get('contextual_spacing') == 'true',
         }

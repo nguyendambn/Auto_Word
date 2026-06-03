@@ -52,9 +52,13 @@ def clear_header_footer(hf):
             logging.warning(f"Silent error ignored: {e}")
 
 
-def clear_all_headers_footers(doc):
+def clear_all_headers_footers(doc, skip_sections=None):
     """Xóa sạch mọi header/footer và hủy liên kết (unlink) của tất cả các sections."""
-    for section in doc.sections:
+    if skip_sections is None:
+        skip_sections = set()
+    for idx, section in enumerate(doc.sections):
+        if idx in skip_sections:
+            continue
         section.header.is_linked_to_previous = False
         section.first_page_header.is_linked_to_previous = False
         try:
@@ -447,6 +451,32 @@ def classify_sections(doc):
         section_types.append(current_type)
     return section_types
 
+def get_element_section_types(doc):
+    """
+    Trích xuất loại section cho từng element (paragraph hoặc table) trong body.
+    """
+    body_elements = doc.element.body
+    
+    element_section_indices = {}
+    current_section_idx = 0
+    
+    for child in body_elements:
+        if child.tag.endswith('}p'):
+            has_sect = False
+            pPr = next((c for c in child if c.tag.endswith('}pPr')), None)
+            if pPr is not None:
+                sectPr = next((c for c in pPr if c.tag.endswith('}sectPr')), None)
+                if sectPr is not None:
+                    has_sect = True
+            
+            element_section_indices[child] = current_section_idx
+            if has_sect:
+                current_section_idx += 1
+        elif child.tag.endswith('}tbl'):
+            element_section_indices[child] = current_section_idx
+            
+    return element_section_indices
+
 def set_section_page_numbering(section, fmt=None, start=None):
     """Cấu hình định dạng và số trang bắt đầu cho section trong w:sectPr."""
     sectPr = section._sectPr
@@ -776,11 +806,13 @@ def clean_paragraph_whitespace(p):
                 r.text = cleaned
 
 
-def cleanup_document_whitespace(doc):
+def cleanup_document_whitespace(doc, skip_paras=None):
     """
     Bước tiền xử lý: Dọn dẹp khoảng trắng thừa và xóa các paragraph rỗng không chứa ảnh hoặc section break.
     Không xóa các đoạn trống thuộc trang bìa (cover) để tránh hỏng bố cục.
     """
+    if skip_paras is None:
+        skip_paras = set()
     try:
         parts = partition_paragraphs_by_section(doc)
         section_types = classify_sections(doc)
@@ -795,6 +827,8 @@ def cleanup_document_whitespace(doc):
         cover_paragraphs = set()
 
     for p in doc.paragraphs:
+        if p._p in skip_paras:
+            continue
         if is_directory_line(p.text):
             continue
         clean_paragraph_whitespace(p)
@@ -802,6 +836,8 @@ def cleanup_document_whitespace(doc):
     paras_to_remove = []
     cover_elements = {x._p for x in cover_paragraphs}
     for p in doc.paragraphs:
+        if p._p in skip_paras:
+            continue
         if p._p in cover_elements:
             continue
             
@@ -833,16 +869,20 @@ def get_heading_level_from_style(style_val):
     return None
 
 
-def split_paragraphs_on_soft_breaks(doc):
+def split_paragraphs_on_soft_breaks(doc, skip_paras=None):
     """
     Tìm các paragraph có chứa ký tự xuống dòng mềm (\n) và tách chúng thành các đoạn văn riêng biệt.
     Đồng thời tự động nâng cấp style của phần tiêu đề nếu có chứa thuộc tính Heading trong các run.
     """
+    if skip_paras is None:
+        skip_paras = set()
     import copy
     paragraphs = list(doc.paragraphs)
     
     for i in range(len(paragraphs) - 1, -1, -1):
         p = paragraphs[i]
+        if p._p in skip_paras:
+            continue
         text = p.text
         if "\n" not in text:
             continue
@@ -955,11 +995,13 @@ def split_paragraphs_on_soft_breaks(doc):
                 pStyle.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val', target_style_name.replace(" ", ""))
 
 
-def merge_split_chapter_titles(doc):
+def merge_split_chapter_titles(doc, skip_paras=None):
     """
     Tìm các chương bị tách thành 2 dòng (Dòng 1: CHƯƠNG X, Dòng 2: Tên chương)
     và gộp chúng thành 1 paragraph chứa ký tự xuống dòng mềm (\n).
     """
+    if skip_paras is None:
+        skip_paras = set()
     paragraphs = list(doc.paragraphs)
     i = 0
     n = len(paragraphs)
@@ -967,6 +1009,9 @@ def merge_split_chapter_titles(doc):
     
     while i < n - 1:
         p1 = paragraphs[i]
+        if p1._p in skip_paras:
+            i += 1
+            continue
         text1 = p1.text.strip()
         
         # Nhận diện dòng 1 chỉ chứa "CHƯƠNG X" hoặc "CHƯƠNG X."
@@ -1037,10 +1082,30 @@ def format_document(input_path, output_path, opts):
     """
     doc = Document(input_path)
     cover_table = get_cover_table(doc)
+    format_cover = opts.get('format_cover', True)
+
+    # --- PHÂN LOẠI SECTION TRANG BÌA ĐỂ THIẾT LẬP BỎ QUA ---
+    cover_paras = []
+    cover_section_indices = set()
+    section_types = []
+    try:
+        parts = partition_paragraphs_by_section(doc)
+        section_types = classify_sections(doc)
+        for idx, part in enumerate(parts):
+            sect_type = section_types[idx] if idx < len(section_types) else "body"
+            if sect_type == "cover":
+                cover_paras.extend(part)
+                cover_section_indices.add(idx)
+    except Exception as e:
+        print("Lỗi khi phân tách section trang bìa:", e)
+        cover_paras = []
+        cover_section_indices = set()
+
+    skip_paras = {p._p for p in cover_paras} if not format_cover else set()
 
     # --- 0. XÓA SẠCH MỌI SỐ TRANG CŨ VÀ HEADERS/FOOTERS ---
     try:
-        clear_all_headers_footers(doc)
+        clear_all_headers_footers(doc, skip_sections=cover_section_indices)
         try:
             settings_el = doc.settings.element if hasattr(doc.settings, 'element') else doc.settings._element
             even_odd = settings_el.find(qn('w:evenAndOddHeaders'))
@@ -1053,19 +1118,19 @@ def format_document(input_path, output_path, opts):
 
     # --- 0. TÁCH CÁC DÒNG XUỐNG DÒNG MỀM CHỨA HEADING / PHÂN TÁCH PARAGRAPH ---
     try:
-        split_paragraphs_on_soft_breaks(doc)
+        split_paragraphs_on_soft_breaks(doc, skip_paras=skip_paras)
     except Exception as e:
         print("Lỗi khi tách soft break:", e)
 
     # --- 0. GỘP TIÊU ĐỀ CHƯƠNG BỊ TÁCH DÒNG ---
     try:
-        merge_split_chapter_titles(doc)
+        merge_split_chapter_titles(doc, skip_paras=skip_paras)
     except Exception as e:
         print("Lỗi khi gộp tiêu đề chương:", e)
 
     # --- 0. DỌN DẸP KHOẢNG TRẤNG VÀ PARAGRAPH RỖNG TRƯỚC ---
     try:
-        cleanup_document_whitespace(doc)
+        cleanup_document_whitespace(doc, skip_paras=skip_paras)
     except Exception as e:
         print("Lỗi khi dọn dẹp khoảng trắng:", e)
 
@@ -1079,6 +1144,8 @@ def format_document(input_path, output_path, opts):
     if opts.get('add_page_numbers', True):
         # Dọn dẹp tất cả các section break cũ trong paragraph để tránh trùng lặp khi định dạng lại nhiều lần
         for p in doc.paragraphs:
+            if p._p in skip_paras:
+                continue
             pPr = p._p.find(qn('w:pPr'))
             if pPr is not None:
                 sectPr = pPr.find(qn('w:sectPr'))
@@ -1103,7 +1170,9 @@ def format_document(input_path, output_path, opts):
     margin_left = float(opts.get('margin_left', 30))
     margin_right = float(opts.get('margin_right', 15))
 
-    for section in doc.sections:
+    for idx, section in enumerate(doc.sections):
+        if not format_cover and idx in cover_section_indices:
+            continue
         section.page_width = Mm(210)
         section.page_height = Mm(297)
         section.top_margin = Mm(margin_top)
@@ -1115,19 +1184,7 @@ def format_document(input_path, output_path, opts):
         section.footer_distance = Mm(max(1.0, (margin_bottom - 5) / 2))
 
     # --- 1.5. ĐỊNH DẠNG TRANG BÌA (COVER PAGE) ---
-    cover_paras = []
-    try:
-        parts = partition_paragraphs_by_section(doc)
-        section_types = classify_sections(doc)
-        for idx, part in enumerate(parts):
-            sect_type = section_types[idx] if idx < len(section_types) else "body"
-            if sect_type == "cover":
-                cover_paras.extend(part)
-    except Exception as e:
-        print("Lỗi khi phân tách section trang bìa:", e)
-        cover_paras = []
-
-    if cover_paras and cover_table is None:
+    if format_cover and cover_paras and cover_table is None:
         try:
             # Thêm viền trang bìa cho section đầu tiên
             add_cover_page_border(doc, doc.sections[0])
@@ -1603,6 +1660,8 @@ def format_document(input_path, output_path, opts):
 
     cover_paras_set = {p._p for p in cover_paras} if cover_table is None else set()
     for p in doc.paragraphs:
+        if not format_cover and para_section_type.get(p._p) == "cover":
+            continue
         if p._p in cover_paras_set:
             continue
         # Nếu có cover_table, bỏ qua không định dạng các paragraph trống thuộc section cover
@@ -2151,7 +2210,21 @@ def format_document(input_path, output_path, opts):
                 for nested_tbl in cell.tables:
                     format_table_recursive(nested_tbl)
 
+    # Phân loại section cho từng table
+    table_section_types = {}
+    try:
+        element_section_indices = get_element_section_types(doc)
+        for table in doc.tables:
+            tbl_el = table._tbl
+            sec_idx = element_section_indices.get(tbl_el, 0)
+            sec_type = section_types[sec_idx] if sec_idx < len(section_types) else "body"
+            table_section_types[table] = sec_type
+    except Exception as e:
+        print("Lỗi khi xác định section cho table:", e)
+
     for table in doc.tables:
+        if not format_cover and table_section_types.get(table) == "cover":
+            continue
         if cover_table is not None and table == cover_table:
             continue
         format_table_recursive(table)
@@ -2160,6 +2233,8 @@ def format_document(input_path, output_path, opts):
     if opts.get('add_page_numbers', True):
         section_types = classify_sections(doc)
         for idx, section in enumerate(doc.sections):
+            if not format_cover and idx in cover_section_indices:
+                continue
             sect_type = section_types[idx] if idx < len(section_types) else "body"
             
             # Đảm bảo hủy liên kết (unlink) để tránh đè hoặc ảnh hưởng tới section khác

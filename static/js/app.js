@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heading3Italic     = document.getElementById('heading3Italic');
 
     const addPageNumbers     = document.getElementById('addPageNumbers');
+    const formatCover        = document.getElementById('formatCover');
 
     const formatBtn          = document.getElementById('formatBtn');
     const loadingOverlay     = document.getElementById('loadingOverlay');
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
             heading2Size: 14, heading2Bold: true,
             heading3Size: 14, heading3Italic: false,
             formatAdminParts: false, addPageNumbers: true,
-            contextualSpacing: true
+            contextualSpacing: true, formatCover: false
         }
     };
 
@@ -227,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heading3Italic.checked     = p.heading3Italic;
 
         addPageNumbers.checked   = p.addPageNumbers;
+        formatCover.checked      = p.formatCover !== undefined ? p.formatCover : false;
 
         updatePreview();
     }
@@ -243,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         marginTop, marginBottom, marginLeft, marginRight,
         autoNumberHeadings, heading1Size, heading1Bold, heading1Uppercase,
         heading2Size, heading2Bold, heading3Size, heading3Italic,
-        addPageNumbers
+        addPageNumbers, formatCover
     ];
 
     allInputs.forEach(el => {
@@ -348,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         formData.append('format_admin_parts',  'false');
         formData.append('add_page_numbers',    addPageNumbers.checked);
+        formData.append('format_cover',        formatCover.checked);
 
         try {
             const response = await fetch('/api/format', {
