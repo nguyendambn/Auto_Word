@@ -350,6 +350,16 @@ def add_cover_page_border(doc, section):
     except Exception as e:
         print("Lỗi khi thêm viền trang bìa:", e)
 
+def is_major_appendix_para(p):
+    text = p.text.strip()
+    clean_val = text.lower()
+    if clean_val in ["phụ lục", "phu luc"]:
+        return True
+    pattern = r'^(?:Phụ\s+lục|Phu\s+luc)\s+(?:[a-z]|\d+)\b'
+    if re.match(pattern, text, re.IGNORECASE):
+        return True
+    return False
+
 def get_para_special_type(p):
     """Nhận diện loại tiêu đề đặc biệt của đoạn văn để chia section."""
     style_name = p.style.name if p.style else ''
@@ -396,6 +406,10 @@ def get_para_special_type(p):
     # 5. Tài liệu tham khảo
     if clean_text in ["TÀI LIỆU THAM KHẢO", "TAI LIEU THAM KHAO"]:
         return "references"
+        
+    # 6. Phụ lục
+    if is_major_appendix_para(p):
+        return "appendix"
         
     return None
 
@@ -1458,7 +1472,7 @@ def format_document(input_path, output_path, opts):
 
         trigger_paras = []
         last_type = "cover"
-        ORDER = ["cover", "thanks", "toc", "list", "body", "references"]
+        ORDER = ["cover", "thanks", "toc", "list", "body", "references", "appendix"]
         for p in doc.paragraphs:
             p_type = get_para_special_type(p)
             if p_type is not None:
@@ -1477,8 +1491,18 @@ def format_document(input_path, output_path, opts):
     for idx, section in enumerate(doc.sections):
         if not format_cover and idx in cover_section_indices:
             continue
-        section.page_width = Mm(210)
-        section.page_height = Mm(297)
+        from docx.enum.section import WD_ORIENT
+        pw = section.page_width
+        ph = section.page_height
+        is_landscape_size = (pw is not None and ph is not None and pw > ph)
+        if is_landscape_size or section.orientation == WD_ORIENT.LANDSCAPE:
+            section.page_width = Mm(297)
+            section.page_height = Mm(210)
+            section.orientation = WD_ORIENT.LANDSCAPE
+        else:
+            section.page_width = Mm(210)
+            section.page_height = Mm(297)
+            section.orientation = WD_ORIENT.PORTRAIT
         section.top_margin = Mm(margin_top)
         section.bottom_margin = Mm(margin_bottom)
         section.left_margin = Mm(margin_left)
@@ -2121,14 +2145,14 @@ def format_document(input_path, output_path, opts):
             "danh mục thuật ngữ, ký hiệu và từ viết tắt",
             "danh mục các thuật ngữ, ký hiệu và từ viết tắt",
             "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu",
-            "kết luận", "kết luận chung", "kết luận và hướng phát triển", "tài liệu tham khảo", "phụ lục",
+            "kết luận", "kết luận chung", "kết luận và hướng phát triển", "tài liệu tham khảo",
             "loi cam on", "loi cam doan", "danh muc hinh anh", "danh muc bang bieu",
             "danh muc cac thuat ngu viet tat", "danh muc thuat ngu viet tat",
             "danh muc cac thuat ngu, ky hieu va cac chu viet tat",
             "danh muc thuat ngu, ky hieu va tu viet tat",
             "danh muc cac thuat ngu, ky hieu va tu viet tat",
             "mo dau", "phan mo dau", "loi mo dau", "loi noi dau",
-            "ket luan", "ket luan chung", "ket luan va huong phat trien", "tai lieu tham khao", "phu luoc", "phu luc"
+            "ket luan", "ket luan chung", "ket luan va huong phat trien", "tai lieu tham khao"
         ]
         
         # Hàm kiểm tra xem có phải Heading 1 không đánh số hay không (phải là dòng ngắn và khớp với từ khóa)
@@ -2137,7 +2161,7 @@ def format_document(input_path, output_path, opts):
             re.sub(r'[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', '', k)
             for k in h1_no_num_keywords
         ]
-        is_h1_no_num = (len(text) < 80) and (text_lower_clean in h1_no_num_clean_keywords or is_directory_title)
+        is_h1_no_num = (len(text) < 80) and (text_lower_clean in h1_no_num_clean_keywords or is_directory_title or is_major_appendix_para(p))
         if is_h1_no_num:
             if re.match(r'^[\-\+\*•]', text.strip()) or text.rstrip().endswith(':'):
                 is_h1_no_num = False
@@ -2631,7 +2655,7 @@ def format_document(input_path, output_path, opts):
                 set_section_page_numbering(section, fmt="lowerRoman", start=2)
             elif sect_type == "body":
                 set_section_page_numbering(section, fmt="decimal", start=1)
-            elif sect_type == "references":
+            elif sect_type in ["references", "appendix"]:
                 set_section_page_numbering(section, fmt="decimal", start=None)
 
     # --- TỰ ĐỘNG CHÈN TRƯỜNG DANH MỤC HÌNH ẢNH, BẢNG BIỂU & MỤC LỤC NẾU THIẾU ---
