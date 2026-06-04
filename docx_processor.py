@@ -432,12 +432,14 @@ def get_para_special_type(p):
         
     # 3. Danh mục
     if clean_text in [
-        "DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG",
+        "DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC CÁC HÌNH ẢNH", "DANH MỤC CÁC HÌNH",
+        "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "DANH MỤC CÁC BẢNG BIỂU", "DANH MỤC CÁC BẢNG",
         "DANH MỤC CÁC THUẬT NGỮ VIẾT TẮT", "DANH MỤC THUẬT NGỮ VIẾT TẮT",
         "DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT",
         "DANH MỤC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT",
         "DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT",
-        "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC BANG BIEU", "DANH MUC BANG",
+        "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC CAC HINH ANH", "DANH MUC CAC HINH",
+        "DANH MUC BANG BIEU", "DANH MUC BANG", "DANH MUC CAC BANG BIEU", "DANH MUC CAC BANG",
         "DANH MUC CAC THUAT NGU VIET TAT", "DANH MUC THUAT NGU VIET TAT",
         "DANH MUC CAC THUAT NGU, KY HIEU VA CAC CHU VIET TAT",
         "DANH MUC THUAT NGU, KY HIEU VA TU VIET TAT",
@@ -816,12 +818,23 @@ def remove_manual_entries_under_titles(doc):
         clean_text = re.sub(r'\s+', ' ', text_upper)
         
         # Nếu gặp tiêu đề danh mục hình ảnh, bảng biểu hoặc mục lục
-        if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "MỤC LỤC"]:
+        if clean_text in [
+            "DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC CÁC HÌNH ẢNH", "DANH MỤC CÁC HÌNH",
+            "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "DANH MỤC CÁC BẢNG BIỂU", "DANH MỤC CÁC BẢNG",
+            "MỤC LỤC", "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC CAC HINH ANH", "DANH MUC CAC HINH",
+            "DANH MUC BANG BIEU", "DANH MUC BANG", "DANH MUC CAC BANG BIEU", "DANH MUC CAC BANG", "MUC LUC"
+        ]:
             # Xác định nhãn chuẩn tương ứng
             expected_label = None
-            if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH"]:
+            if clean_text in [
+                "DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC CÁC HÌNH ẢNH", "DANH MỤC CÁC HÌNH",
+                "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC CAC HINH ANH", "DANH MUC CAC HINH"
+            ]:
                 expected_label = "Hình"
-            elif clean_text in ["DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG"]:
+            elif clean_text in [
+                "DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "DANH MỤC CÁC BẢNG BIỂU", "DANH MỤC CÁC BẢNG",
+                "DANH MUC BANG BIEU", "DANH MUC BANG", "DANH MUC CAC BANG BIEU", "DANH MUC CAC BANG"
+            ]:
                 expected_label = "Bảng"
             
             j = i + 1
@@ -1122,7 +1135,7 @@ def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
                 if not is_real_heading:
                     if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                         is_real_heading = True
-                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"] or (text_upper in ["GIỚI THIỆU ĐỀ TÀI"] and is_at_top_of_page(p)):
+                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "KẾT LUẬN VÀ KIẾN NGHỊ", "TÀI LIỆU THAM KHẢO", "KET LUAN VA KIEN NGHI"] or (text_upper in ["GIỚI THIỆU ĐỀ TÀI"] and is_at_top_of_page(p)):
                         is_real_heading = True
                 if is_real_heading and not is_directory_line(text):
                     in_front_matter_directory = False
@@ -1449,20 +1462,34 @@ def format_document(input_path, output_path, opts):
 
     # --- PHÂN LOẠI SECTION TRANG BÌA ĐỂ THIẾT LẬP BỎ QUA ---
     cover_paras = []
-    cover_section_indices = set()
+    cover_section_indices = {0}  # Section 0 luôn chứa trang bìa ban đầu
     section_types = []
     try:
         parts = partition_paragraphs_by_section(doc)
         section_types = classify_sections(doc)
-        for idx, part in enumerate(parts):
-            sect_type = section_types[idx] if idx < len(section_types) else "body"
-            if sect_type == "cover":
-                cover_paras.extend(part)
-                cover_section_indices.add(idx)
+        
+        # Nếu có các paragraph trong Section 0, tìm tiêu đề đặc biệt đầu tiên
+        # (như Lời cảm ơn, Mục lục, Danh mục, Chương 1...) để phân tách trang bìa.
+        if parts:
+            first_part = parts[0]
+            first_special_idx = len(first_part)
+            for idx, p in enumerate(first_part):
+                p_type = get_para_special_type(p)
+                if p_type in ["thanks", "toc", "list", "body", "references", "appendix"]:
+                    first_special_idx = idx
+                    break
+            cover_paras = first_part[:first_special_idx]
+            
+            # Thêm các paragraph từ các section khác được phân loại là cover
+            for idx in range(1, len(parts)):
+                sect_type = section_types[idx] if idx < len(section_types) else "body"
+                if sect_type == "cover":
+                    cover_paras.extend(parts[idx])
+                    cover_section_indices.add(idx)
     except Exception as e:
         print("Lỗi khi phân tách section trang bìa:", e)
         cover_paras = []
-        cover_section_indices = set()
+        cover_section_indices = {0}
 
     skip_paras = {p._p for p in cover_paras} if not format_cover else set()
 
@@ -1511,9 +1538,29 @@ def format_document(input_path, output_path, opts):
 
     # --- 0. PHÂN CHIA SECTION BREAKS DỰA TRÊN CẤU TRÚC VĂN BẢN ---
     if opts.get('add_page_numbers', True):
-        # Dọn dẹp tất cả các section break cũ trong paragraph để tránh trùng lặp khi định dạng lại nhiều lần
+        # Xác định các section ngang (landscape) trong tài liệu gốc để giữ lại
+        landscape_sect_indices = set()
+        for s_idx, sec in enumerate(doc.sections):
+            from docx.enum.section import WD_ORIENT
+            pw = sec.page_width
+            ph = sec.page_height
+            is_landscape_size = (pw is not None and ph is not None and pw > ph)
+            if is_landscape_size or sec.orientation == WD_ORIENT.LANDSCAPE:
+                landscape_sect_indices.add(s_idx)
+
+        parts = partition_paragraphs_by_section(doc)
+        preserve_p_pPrs = set()
+        for s_idx in range(len(parts) - 1):
+            if s_idx in landscape_sect_indices or (s_idx + 1) in landscape_sect_indices:
+                last_p = parts[s_idx][-1]
+                preserve_p_pPrs.add(last_p._p)
+
+        # Dọn dẹp tất cả các section break cũ trong paragraph để tránh trùng lặp khi định dạng lại nhiều lần,
+        # nhưng giữ lại các section break liên quan đến trang ngang (landscape).
         for p in doc.paragraphs:
             if p._p in skip_paras:
+                continue
+            if p._p in preserve_p_pPrs:
                 continue
             pPr = p._p.find(qn('w:pPr'))
             if pPr is not None:
@@ -2196,14 +2243,14 @@ def format_document(input_path, output_path, opts):
             "danh mục thuật ngữ, ký hiệu và từ viết tắt",
             "danh mục các thuật ngữ, ký hiệu và từ viết tắt",
             "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu", "giới thiệu đề tài",
-            "kết luận", "kết luận chung", "kết luận và hướng phát triển", "tài liệu tham khảo",
+            "kết luận", "kết luận chung", "kết luận và hướng phát triển", "kết luận và kiến nghị", "tài liệu tham khảo",
             "loi cam on", "loi cam doan", "danh muc hinh anh", "danh muc bang bieu",
             "danh muc cac thuat ngu viet tat", "danh muc thuat ngu viet tat",
             "danh muc cac thuat ngu, ky hieu va cac chu viet tat",
             "danh muc thuat ngu, ky hieu va tu viet tat",
             "danh muc cac thuat ngu, ky hieu va tu viet tat",
             "mo dau", "phan mo dau", "loi mo dau", "loi noi dau", "gioi thieu de tai",
-            "ket luan", "ket luan chung", "ket luan va huong phat trien", "tai lieu tham khao"
+            "ket luan", "ket luan chung", "ket luan va huong phat trien", "ket luan va kien nghi", "tai lieu tham khao"
         ]
         
         # Hàm kiểm tra xem có phải Heading 1 không đánh số hay không (phải là dòng ngắn và khớp với từ khóa)
@@ -2664,6 +2711,23 @@ def format_document(input_path, output_path, opts):
     # --- 5. ĐÁNH SỐ TRANG ---
     if opts.get('add_page_numbers', True):
         section_types = classify_sections(doc)
+        
+        # Tìm chỉ số của các section xuất hiện đầu tiên của mỗi loại
+        first_thanks_idx = None
+        first_toc_idx = None
+        first_list_idx = None
+        first_body_idx = None
+        for idx, section in enumerate(doc.sections):
+            sect_type = section_types[idx] if idx < len(section_types) else "body"
+            if sect_type == "thanks" and first_thanks_idx is None:
+                first_thanks_idx = idx
+            elif sect_type == "toc" and first_toc_idx is None:
+                first_toc_idx = idx
+            elif sect_type == "list" and first_list_idx is None:
+                first_list_idx = idx
+            elif sect_type == "body" and first_body_idx is None:
+                first_body_idx = idx
+
         for idx, section in enumerate(doc.sections):
             if not format_cover and idx in cover_section_indices:
                 continue
@@ -2700,15 +2764,27 @@ def format_document(input_path, output_path, opts):
             
             # Cấu hình w:pgNumType và start bắt đầu
             if sect_type == "thanks":
-                set_section_page_numbering(section, fmt="lowerRoman", start=1)
+                if idx == first_thanks_idx:
+                    set_section_page_numbering(section, fmt="lowerRoman", start=1)
+                else:
+                    set_section_page_numbering(section, fmt="lowerRoman", start=None)
             elif sect_type == "toc":
                 set_section_page_numbering(section, fmt="lowerRoman", start=None)
             elif sect_type == "list":
-                # Bắt đầu đánh số trang từ số La mã ii (2) cho danh mục 
-                # (để bù lại trang Mục lục không được đánh số và không hiển thị, giúp Lời cảm ơn là i, Danh mục là ii)
-                set_section_page_numbering(section, fmt="lowerRoman", start=2)
+                if idx == first_list_idx:
+                    # Bắt đầu đánh số trang từ số La mã ii (2) cho danh mục nếu có lời cảm ơn,
+                    # ngược lại nếu không có lời cảm ơn thì đánh từ i (1)
+                    if first_thanks_idx is not None:
+                        set_section_page_numbering(section, fmt="lowerRoman", start=2)
+                    else:
+                        set_section_page_numbering(section, fmt="lowerRoman", start=1)
+                else:
+                    set_section_page_numbering(section, fmt="lowerRoman", start=None)
             elif sect_type == "body":
-                set_section_page_numbering(section, fmt="decimal", start=1)
+                if idx == first_body_idx:
+                    set_section_page_numbering(section, fmt="decimal", start=1)
+                else:
+                    set_section_page_numbering(section, fmt="decimal", start=None)
             elif sect_type in ["references", "appendix"]:
                 set_section_page_numbering(section, fmt="decimal", start=None)
 
@@ -2716,17 +2792,17 @@ def format_document(input_path, output_path, opts):
     for p in list(doc.paragraphs):
         text_upper = p.text.strip().upper()
         clean_text = re.sub(r'\s+', ' ', text_upper)
-        if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH"]:
+        if clean_text in ["DANH MỤC HÌNH ẢNH", "DANH MỤC HÌNH", "DANH MỤC CÁC HÌNH ẢNH", "DANH MỤC CÁC HÌNH", "DANH MUC HINH ANH", "DANH MUC HINH", "DANH MUC CAC HINH ANH", "DANH MUC CAC HINH"]:
             parent = p._p.getparent()
             p_index = parent.index(p._p)
             if not parent_already_has_toc(parent, p_index, "Hình"):
                 insert_toc_field_after(p, doc, ' TOC \\h \\z \\c "Hình" ', "TableofFigures", font_name)
-        elif clean_text in ["DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG"]:
+        elif clean_text in ["DANH MỤC BẢNG BIỂU", "DANH MỤC BẢNG", "DANH MỤC CÁC BẢNG BIỂU", "DANH MỤC CÁC BẢNG", "DANH MUC BANG BIEU", "DANH MUC BANG", "DANH MUC CAC BANG BIEU", "DANH MUC CAC BANG"]:
             parent = p._p.getparent()
             p_index = parent.index(p._p)
             if not parent_already_has_toc(parent, p_index, "Bảng"):
                 insert_toc_field_after(p, doc, ' TOC \\h \\z \\c "Bảng" ', "TableofFigures", font_name)
-        elif clean_text == "MỤC LỤC":
+        elif clean_text in ["MỤC LỤC", "MUC LUC"]:
             parent = p._p.getparent()
             p_index = parent.index(p._p)
             if not parent_already_has_toc(parent, p_index, "\\o"):
@@ -2741,11 +2817,20 @@ def format_document(input_path, output_path, opts):
         for _i, _p in enumerate(_all_paras):
             _tu = _p.text.strip().upper()
             _ct = re.sub(r'\s+', ' ', _tu)
-            if _ct in ['DANH MỤC HÌNH ẢNH', 'DANH MỤC HÌNH', 'DANH MỤC BẢNG BIỂU', 'DANH MỤC BẢNG', 'MỤC LỤC',
-                        'DANH MỤC CÁC THUẬT NGỮ VIẾT TẮT', 'DANH MỤC THUẬT NGỮ VIẾT TẮT',
-                        'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT',
-                        'DANH MỤC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT',
-                        'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT']:
+            if _ct in [
+                'DANH MỤC HÌNH ẢNH', 'DANH MỤC HÌNH', 'DANH MỤC CÁC HÌNH ẢNH', 'DANH MỤC CÁC HÌNH',
+                'DANH MỤC BẢNG BIỂU', 'DANH MỤC BẢNG', 'DANH MỤC CÁC BẢNG BIỂU', 'DANH MỤC CÁC BẢNG',
+                'MỤC LỤC', 'DANH MUC HINH ANH', 'DANH MUC HINH', 'DANH MUC CAC HINH ANH', 'DANH MUC CAC HINH',
+                'DANH MUC BANG BIEU', 'DANH MUC BANG', 'DANH MUC CAC BANG BIEU', 'DANH MUC CAC BANG', 'MUC LUC',
+                'DANH MỤC CÁC THUẬT NGỮ VIẾT TẮT', 'DANH MỤC THUẬT NGỮ VIẾT TẮT',
+                'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ CÁC CHỮ VIẾT TẮT',
+                'DANH MỤC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT',
+                'DANH MỤC CÁC THUẬT NGỮ, KÝ HIỆU VÀ TỪ VIẾT TẮT',
+                'DANH MUC CAC THUAT NGU VIET TAT', 'DANH MUC THUAT NGU VIET TAT',
+                'DANH MUC CAC THUAT NGU, KY HIEU VA CAC CHU VIET TAT',
+                'DANH MUC THUAT NGU, KY HIEU VA TU VIET TAT',
+                'DANH MUC CAC THUAT NGU, KY HIEU VA TU VIET TAT'
+            ]:
                 _j = _i + 1
                 while _j < len(_all_paras):
                     _np = _all_paras[_j]
