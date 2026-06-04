@@ -32,10 +32,10 @@ def api_format():
     try:
         opts = {
             'font_name':            request.form.get('font_name', 'Times New Roman'),
-            'body_size':            float(request.form.get('body_size', 13)),
-            'line_spacing':         float(request.form.get('line_spacing', 1.3)),
+            'body_size':            float(request.form.get('body_size', 14)),
+            'line_spacing':         float(request.form.get('line_spacing', 1.5)),
             'space_before':         float(request.form.get('space_before', 0)),
-            'space_after':          float(request.form.get('space_after', 6)),
+            'space_after':          float(request.form.get('space_after', 0)),
             'first_line_indent':    float(request.form.get('first_line_indent', 10)),
             'margin_top':           float(request.form.get('margin_top', 20)),
             'margin_bottom':        float(request.form.get('margin_bottom', 20)),

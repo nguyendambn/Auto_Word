@@ -199,6 +199,19 @@ def safe_set_style(doc, obj, style_name, fallback='Normal'):
             except Exception as e:
                     logging.warning(f"Silent error ignored: {e}")
 
+def disable_paragraph_numbering(p):
+    """Vô hiệu hóa đánh số tự động của paragraph (multilevel list) bằng cách đặt numId = 0."""
+    pPr = p._p.get_or_add_pPr()
+    numPr = pPr.find(qn('w:numPr'))
+    if numPr is None:
+        numPr = OxmlElement('w:numPr')
+        insert_element_in_order(pPr, numPr, PPR_ORDER)
+    for child in list(numPr):
+        numPr.remove(child)
+    numId = OxmlElement('w:numId')
+    numId.set(qn('w:val'), '0')
+    numPr.append(numId)
+
 def set_contextual_spacing(obj, val=True):
     """Bật/tắt thuộc tính 'Don't add space between paragraphs of the same style' (contextualSpacing)."""
     pPr = obj.element.get_or_add_pPr() if hasattr(obj, 'element') else obj._p.get_or_add_pPr()
@@ -832,6 +845,34 @@ def clean_paragraph_whitespace(p):
     """
     Dọn dẹp khoảng trắng thừa trong paragraph mà không làm hỏng định dạng các run (in đậm, in nghiêng, v.v.).
     """
+    # Ghi nhận thụt đầu dòng gốc trước khi dọn dẹp khoảng trắng
+    from docx.oxml.ns import qn
+    text_raw = p.text
+    has_original_indent = False
+    if text_raw.startswith((' ', '\t', '\xa0')):
+        has_original_indent = True
+    else:
+        if p.runs:
+            first_run = p.runs[0]
+            if first_run.element.find(qn('w:tab')) is not None or (first_run.text and first_run.text.startswith(('\t', ' ', '\xa0'))):
+                has_original_indent = True
+        if not has_original_indent:
+            pPr = p._p.find(qn('w:pPr'))
+            if pPr is not None:
+                ind = pPr.find(qn('w:ind'))
+                if ind is not None:
+                    try:
+                        fl_val = int(ind.get(qn('w:firstLine')) or 0)
+                        l_val = int(ind.get(qn('w:left')) or 0)
+                        if fl_val > 0 or l_val > 0:
+                            has_original_indent = True
+                    except ValueError:
+                        has_original_indent = True
+                        
+    if has_original_indent:
+        pPr = p._p.get_or_add_pPr()
+        pPr.set(qn('w:alreadyIndented'), '1')
+
     if not p.runs:
         return
         
@@ -1723,10 +1764,10 @@ def format_document(input_path, output_path, opts):
 
     # --- 2. ĐỌC CẤU HÌNH ---
     font_name = opts.get('font_name', 'Times New Roman')
-    body_size = float(opts.get('body_size', 13))
-    line_spacing = float(opts.get('line_spacing', 1.3))
+    body_size = float(opts.get('body_size', 14))
+    line_spacing = float(opts.get('line_spacing', 1.5))
     space_before = float(opts.get('space_before', 0))
-    space_after = float(opts.get('space_after', 6))
+    space_after = float(opts.get('space_after', 0))
     indent_val = float(opts.get('first_line_indent', 10))
     first_line_indent = Mm(indent_val) if indent_val > 0 else None
     contextual_spacing = opts.get('contextual_spacing', True)
@@ -1937,6 +1978,12 @@ def format_document(input_path, output_path, opts):
             except Exception as e:
                     logging.warning(f"Silent error ignored: {e}")
                     
+        # Nhận diện thụt đầu dòng gốc từ XML tạm thời đã được ghi ở bước tiền xử lý
+        has_original_indent = False
+        pPr = p._p.find(qn('w:pPr'))
+        if pPr is not None and pPr.get(qn('w:alreadyIndented')) == '1':
+            has_original_indent = True
+
         text = p.text.strip()
         style_name = p.style.name if p.style else 'Normal'
 
@@ -2095,8 +2142,39 @@ def format_document(input_path, output_path, opts):
             if re.match(r'^[\-\+\*•]', text.strip()) or text.rstrip().endswith(':'):
                 is_h1_no_num = False
 
+        # Nhận diện các sub-heading H2 không đánh số (thường nằm trong MỞ ĐẦU, KẾT LUẬN)
+        h2_no_num_keywords = [
+            "lý do chọn đề tài", "ly do chon de tai",
+            "mục tiêu nghiên cứu", "muc tieu nghien cuu",
+            "đối tượng và phạm vi nghiên cứu", "doi tuong va pham vi nghien cuu",
+            "đối tượng nghiên cứu", "phạm vi nghiên cứu",
+            "kết quả mong muốn đạt được của đề tài", "ket qua mong muon dat duoc",
+            "kết quả mong muốn", "ket qua mong muon",
+            "cấu trúc của báo cáo", "cau truc cua bao cao",
+            "cấu trúc báo cáo", "cau truc bao cao",
+            "phương pháp nghiên cứu", "phuong phap nghien cuu",
+            "ý nghĩa khoa học và thực tiễn", "y nghia khoa hoc va thuc tien",
+            "tính mới của đề tài", "tinh moi cua de tai",
+            "câu hỏi nghiên cứu", "câu hoi nghien cuu",
+            "giả thuyết nghiên cứu", "gia thuyet nghien cuu",
+            "bố cục của báo cáo", "bo cuc cua bao cao",
+            "bố cục báo cáo", "bo cuc bao cao",
+        ]
+        h2_no_num_clean_keywords = [
+            re.sub(r'[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', '', k)
+            for k in h2_no_num_keywords
+        ]
+        is_h2_no_num = (
+            current_h1_is_no_num  # chỉ áp dụng khi đang trong H1 không số (MỞ ĐẦU, KẾT LUẬN...)
+            and len(text) < 80
+            and text_lower_clean in h2_no_num_clean_keywords
+            and not re.match(r'^[\-\+\*•]', text.strip())
+            and not text.rstrip().endswith(':')
+        )
+
         is_h1, is_h2, is_h3 = False, False, False
         heading_level = None
+        heading_num_parts = None
         if not is_directory_line(text):
             explicit_outline = None
             pPr = p._p.find(qn('w:pPr'))
@@ -2112,12 +2190,18 @@ def format_document(input_path, output_path, opts):
             if match_h_num:
                 num_str = match_h_num.group(1)
                 level = num_str.count('.') + 1
+                try:
+                    heading_num_parts = [int(x) for x in num_str.split('.')]
+                except ValueError:
+                    pass
                 if level == 2:
                     heading_level = 2
                 elif level >= 3:
                     heading_level = level
             elif is_h1_no_num or re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE) or re.match(r'^I{1,3}\.\s', text):
                 heading_level = 1
+            elif is_h2_no_num:
+                heading_level = 2
             elif explicit_outline is not None:
                 heading_level = explicit_outline + 1
             else:
@@ -2137,12 +2221,14 @@ def format_document(input_path, output_path, opts):
             if heading_level is not None and not style_name.startswith('Heading'):
                 if len(text) > 100:
                     heading_level = None
+                    heading_num_parts = None
 
             # Luật 1: Nếu style thực tế là Heading nhưng text không khớp pattern số heading và quá dài (> 150 kí tự)
             if heading_level is not None and style_name.startswith('Heading'):
                 has_pattern = re.match(r'^(\d+(?:\.\d+)+|CHƯƠNG\s+[IVX\d]+|I{1,3}\.)\b', text, re.IGNORECASE) is not None
                 if not has_pattern and len(text) > 150:
                     heading_level = None
+                    heading_num_parts = None
 
             # Luật 3: Khử Heading 1 nhận diện nhầm (không có ký tự bắt đầu của Chương và không nằm trong H1 không đánh số)
             if heading_level == 1 and not is_h1_no_num:
@@ -2158,6 +2244,7 @@ def format_document(input_path, output_path, opts):
                         expected_ch = heading_counters[0] + 1
                         if ch_num > expected_ch or any(c.islower() for c in text):
                             heading_level = None
+                            heading_num_parts = None
             
             if heading_level == 1:
                 is_h1 = True
@@ -2248,7 +2335,11 @@ def format_document(input_path, output_path, opts):
             current_h1_is_no_num = is_h1_no_num
 
             if not is_h1_no_num:
-                heading_counters[0] += 1
+                ch_num = get_chapter_number(text)
+                if ch_num is not None:
+                    heading_counters[0] = ch_num
+                else:
+                    heading_counters[0] += 1
                 for idx in range(1, 9):
                     heading_counters[idx] = 0
                 fig_cnt, tbl_cnt = 0, 0
@@ -2270,6 +2361,7 @@ def format_document(input_path, output_path, opts):
                 if is_h1_no_num:
                     p.text = text
                 else:
+                    disable_paragraph_numbering(p)
                     has_newline = '\n' in text
                     clean = re.sub(r'^(CHƯƠNG\s+[IVX\d]+[\.:]?|I{1,3}\.|[\d\.]+)\s*', '', text, flags=re.IGNORECASE).strip().lstrip(':. ')
                     if has_newline:
@@ -2292,9 +2384,14 @@ def format_document(input_path, output_path, opts):
         elif is_h2:
             safe_set_style(doc, p, 'Heading 2')
 
-            heading_counters[1] += 1
-            for idx in range(2, 9):
-                heading_counters[idx] = 0
+            if not is_h2_no_num:
+                if heading_num_parts and len(heading_num_parts) >= 2:
+                    heading_counters[0] = heading_num_parts[0]
+                    heading_counters[1] = heading_num_parts[1]
+                else:
+                    heading_counters[1] += 1
+                for idx in range(2, 9):
+                    heading_counters[idx] = 0
 
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.line_spacing = line_spacing
@@ -2307,7 +2404,8 @@ def format_document(input_path, output_path, opts):
             h2_size = float(opts.get('heading2_size', 14))
             h2_bold = opts.get('heading2_bold', True)
 
-            if auto_num:
+            if auto_num and not is_h2_no_num:
+                disable_paragraph_numbering(p)
                 clean = re.sub(r'^[\d\.\-\s:]+', '', text).strip().lstrip(':. ')
                 effective_h1 = heading_counters[0] if heading_counters[0] > 0 else 1
                 p.text = f"{effective_h1}.{heading_counters[1]}. {clean}"
@@ -2326,7 +2424,11 @@ def format_document(input_path, output_path, opts):
             safe_set_style(doc, p, target_style if target_style in doc.styles else 'Heading 3')
 
             if level <= 9:
-                heading_counters[level - 1] += 1
+                if heading_num_parts and len(heading_num_parts) >= level:
+                    for i in range(level):
+                        heading_counters[i] = heading_num_parts[i]
+                else:
+                    heading_counters[level - 1] += 1
                 for idx in range(level, 9):
                     heading_counters[idx] = 0
 
@@ -2342,6 +2444,7 @@ def format_document(input_path, output_path, opts):
             h3_italic = opts.get('heading3_italic', False)
 
             if auto_num:
+                disable_paragraph_numbering(p)
                 clean = re.sub(r'^([\d\.\-\s:]+|[a-z]\)\s*)', '', text, flags=re.IGNORECASE).strip().lstrip(':. ')
                 prefix_parts = []
                 for i in range(level):
@@ -2400,13 +2503,20 @@ def format_document(input_path, output_path, opts):
                 p.paragraph_format.right_indent = None
                 
                 is_references = para_section_type.get(p._p) == "references"
+                is_cover_para = para_section_type.get(p._p) == "cover"
                 
-                # Check if it starts with numbered item (e.g. 1., 2.)
+                # Check if it starts with numbered item (e.g. 1., 2.) or is an auto list paragraph
                 is_list_item = False
                 if re.match(r'^\d+\.', text):
                     is_list_item = True
+                else:
+                    pPr = p._p.find(qn('w:pPr'))
+                    if pPr is not None and pPr.find(qn('w:numPr')) is not None:
+                        is_list_item = True
+                    elif 'list' in (p.style.name or '').lower():
+                        is_list_item = True
                     
-                if is_list_item or is_references:
+                if is_list_item or is_references or has_original_indent or is_cover_para:
                     p.paragraph_format.first_line_indent = Pt(0)
                 else:
                     p.paragraph_format.first_line_indent = first_line_indent
