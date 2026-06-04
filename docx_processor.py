@@ -2612,7 +2612,11 @@ def format_document(input_path, output_path, opts):
                     elif 'list' in (p.style.name or '').lower():
                         is_list_item = True
                     
-                if is_list_item or is_references or has_original_indent or is_cover_para:
+                if is_references:
+                    p.paragraph_format.left_indent = None
+                    p.paragraph_format.right_indent = None
+                    p.paragraph_format.first_line_indent = Pt(0)
+                elif is_list_item or has_original_indent or is_cover_para:
                     # Do not override paragraph indentation to preserve original/list styling
                     pass
                 else:
