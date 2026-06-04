@@ -1,3 +1,42 @@
+## 💻 Hướng Dẫn Cài Đặt & Sử Dụng
+
+### 1. Tải và thiết lập (Dành cho Developer)
+
+**Bước 1**: Tải mã nguồn về máy hoặc Clone repository:
+```bash
+git clone https://github.com/nguyendambn/Auto_Word.git
+cd Auto_Word
+```
+
+**Bước 2**: Khởi tạo môi trường ảo (Khuyên dùng):
+```bash
+python -m venv .venv
+.venv\Scripts\activate   # Trên Windows
+source .venv/bin/activate  # Trên macOS/Linux
+```
+
+**Bước 3**: Cài đặt các thư viện phụ thuộc:
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Khởi chạy ứng dụng
+
+* **Cách 1: Kích đúp file `.bat` (Windows)**:
+  Kích đúp chuột vào file `run.bat` ở thư mục gốc của dự án. Hệ thống sẽ tự động kích hoạt môi trường ảo và mở cửa sổ ứng dụng.
+* **Cách 2: Chạy trực tiếp qua Terminal**:
+  ```bash
+  python app.py
+  ```
+
+### 3. Sử dụng
+1. Sau khi khởi chạy, giao diện sẽ hiện lên. 
+2. **Kéo thả** file Word cần định dạng vào vùng Upload hoặc click để chọn file.
+3. Tùy chỉnh các thông số (Phông chữ, Cỡ chữ, Lề, Bật/Tắt đánh số trang tự động...).
+4. Bấm **Bắt đầu định dạng**. 
+5. Công cụ sẽ xuất ra file có hậu tố `_formatted.docx` hoàn chỉnh.
+
+---
 # 📝 Auto-Word Formatter by Van Dam - Công Cụ Định Dạng Báo Cáo & Đồ Án Tốt Nghiệp Tự Động
 
 **Auto-Word Formatter** là một ứng dụng desktop ngoại tuyến (offline) mạnh mẽ được viết bằng **Python** và **JavaScript**, giúp tự động hóa toàn bộ quy trình căn lề, chỉnh sửa font chữ, dãn dòng, tạo đề mục, đánh số trang và định dạng bảng biểu cho các tài liệu Word (`.docx`). 
@@ -59,45 +98,7 @@ Công cụ được tối ưu hóa đặc biệt cho đối tượng là sinh vi
 
 ---
 
-## 💻 Hướng Dẫn Cài Đặt & Sử Dụng
 
-### 1. Tải và thiết lập (Dành cho Developer)
-
-**Bước 1**: Tải mã nguồn về máy hoặc Clone repository:
-```bash
-git clone https://github.com/nguyendambn/Auto_Word.git
-cd Auto_Word
-```
-
-**Bước 2**: Khởi tạo môi trường ảo (Khuyên dùng):
-```bash
-python -m venv .venv
-.venv\Scripts\activate   # Trên Windows
-source .venv/bin/activate  # Trên macOS/Linux
-```
-
-**Bước 3**: Cài đặt các thư viện phụ thuộc:
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Khởi chạy ứng dụng
-
-* **Cách 1: Kích đúp file `.bat` (Windows)**:
-  Kích đúp chuột vào file `run.bat` ở thư mục gốc của dự án. Hệ thống sẽ tự động kích hoạt môi trường ảo và mở cửa sổ ứng dụng.
-* **Cách 2: Chạy trực tiếp qua Terminal**:
-  ```bash
-  python app.py
-  ```
-
-### 3. Sử dụng
-1. Sau khi khởi chạy, giao diện sẽ hiện lên. 
-2. **Kéo thả** file Word cần định dạng vào vùng Upload hoặc click để chọn file.
-3. Tùy chỉnh các thông số (Phông chữ, Cỡ chữ, Lề, Bật/Tắt đánh số trang tự động...).
-4. Bấm **Bắt đầu định dạng**. 
-5. Công cụ sẽ xuất ra file có hậu tố `_formatted.docx` hoàn chỉnh.
-
----
 
 ## 📂 Cấu Trúc Mã Nguồn
 
