@@ -360,8 +360,13 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(intervalId);
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Lỗi không xác định');
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || 'Lỗi không xác định');
+                } else {
+                    throw new Error(`Lỗi máy chủ (${response.status}). File có thể quá lớn hoặc xử lý quá lâu. Vui lòng thử lại.`);
+                }
             }
 
             progressBarInner.style.width = '100%';
