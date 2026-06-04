@@ -350,6 +350,54 @@ def add_cover_page_border(doc, section):
     except Exception as e:
         print("Lỗi khi thêm viền trang bìa:", e)
 
+def is_at_top_of_page(p):
+    """Kiểm tra xem paragraph p có nằm ở đầu trang (sau dấu ngắt trang hoặc ngắt section) hay không."""
+    pPr = p._p.find(qn('w:pPr'))
+    if pPr is not None:
+        pbb = pPr.find(qn('w:pageBreakBefore'))
+        if pbb is not None:
+            val = pbb.get(qn('w:val'))
+            if val is None or val in ['1', 'true', 'on']:
+                return True
+    try:
+        if p.paragraph_format.page_break_before:
+            return True
+    except Exception:
+        pass
+
+    p_element = p._p
+    parent = p_element.getparent()
+    if parent is None:
+        return False
+    try:
+        p_index = parent.index(p_element)
+    except ValueError:
+        return False
+
+    for idx in range(p_index - 1, -1, -1):
+        sibling = parent[idx]
+        if sibling.tag.endswith('}p'):
+            sibling_pPr = sibling.find(qn('w:pPr'))
+            if sibling_pPr is not None:
+                sectPr = sibling_pPr.find(qn('w:sectPr'))
+                if sectPr is not None:
+                    return True
+            br_pages = sibling.xpath('.//*[local-name()="br" and @*[local-name()="type"]="page"]')
+            if len(br_pages) > 0:
+                return True
+            sibling_text = "".join(sibling.itertext()).strip()
+            has_img = len(sibling.xpath('.//*[local-name()="drawing" or local-name()="pict" or local-name()="inline" or local-name()="graphic" or local-name()="imagedata" or local-name()="pic" or local-name()="object"]')) > 0
+            if sibling_text or has_img:
+                break
+        elif sibling.tag.endswith('}sdt'):
+            sdt_text = "".join(sibling.itertext()).strip()
+            if sdt_text:
+                break
+        elif sibling.tag.endswith('}tbl'):
+            break
+            
+    return False
+
 def is_major_appendix_para(p):
     text = p.text.strip()
     clean_val = text.lower()
@@ -398,8 +446,11 @@ def get_para_special_type(p):
         return "list"
         
     # 4. Mở đầu / Chương 1
-    if clean_text in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "MO DAU", "PHAN MO DAU", "LOI MO DAU", "LOI NOI DAU", "GIỚI THIỆU ĐỀ TÀI", "GIOI THIEU DE TAI"]:
+    if clean_text in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "MO DAU", "PHAN MO DAU", "LOI MO DAU", "LOI NOI DAU"]:
         return "body"
+    if clean_text in ["GIỚI THIỆU ĐỀ TÀI", "GIOI THIEU DE TAI"]:
+        if is_at_top_of_page(p):
+            return "body"
     if re.match(r'^CHƯƠNG\s+(1|I)\b', clean_text, re.IGNORECASE):
         return "body"
         
@@ -804,7 +855,7 @@ def remove_manual_entries_under_titles(doc):
                 is_end_of_directory = False
                 if next_style.startswith('Heading') and not is_directory_line(next_text):
                     is_end_of_directory = True
-                elif (re.match(r'^CHƯƠNG\s+[IVX\d]+', next_text, re.IGNORECASE) or next_text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI"]) and not is_directory_line(next_text):
+                elif (re.match(r'^CHƯƠNG\s+[IVX\d]+', next_text, re.IGNORECASE) or next_text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU"] or (next_text_upper in ["GIỚI THIỆU ĐỀ TÀI"] and is_at_top_of_page(next_p))) and not is_directory_line(next_text):
                     is_end_of_directory = True
                     
                 if is_end_of_directory:
@@ -1071,7 +1122,7 @@ def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
                 if not is_real_heading:
                     if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                         is_real_heading = True
-                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"]:
+                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"] or (text_upper in ["GIỚI THIỆU ĐỀ TÀI"] and is_at_top_of_page(p)):
                         is_real_heading = True
                 if is_real_heading and not is_directory_line(text):
                     in_front_matter_directory = False
@@ -2162,6 +2213,9 @@ def format_document(input_path, output_path, opts):
             for k in h1_no_num_keywords
         ]
         is_h1_no_num = (len(text) < 80) and (text_lower_clean in h1_no_num_clean_keywords or is_directory_title or is_major_appendix_para(p))
+        if is_h1_no_num and (text_lower_clean in ["giớithiệuđềtài", "gioithieudetai"]):
+            if not is_at_top_of_page(p):
+                is_h1_no_num = False
         if is_h1_no_num:
             if re.match(r'^[\-\+\*•]', text.strip()) or text.rstrip().endswith(':'):
                 is_h1_no_num = False
@@ -2255,7 +2309,7 @@ def format_document(input_path, output_path, opts):
         if not is_real_heading:
             if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                 is_real_heading = True
-            elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI"]:
+            elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU"] or (text_upper in ["GIỚI THIỆU ĐỀ TÀI"] and is_at_top_of_page(p)):
                 is_real_heading = True
 
         if is_real_heading and not is_directory_line(text):
