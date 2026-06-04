@@ -2,6 +2,7 @@ import os
 import io
 import tempfile
 import threading
+import shutil
 from flask import Flask, render_template, request, send_file, jsonify
 import webview
 from docx_processor import format_document
@@ -128,8 +129,39 @@ class Api:
             save_filename=default_name,
             file_types=file_types
         )
-        # result có thể là string hoặc None
-        return result if result else None
+        if result:
+            if isinstance(result, (tuple, list)):
+                return result[0]
+            return result
+        return None
+
+    def download_cover(self, filename):
+        """Mở hộp thoại để tải xuống mẫu bìa tương ứng trong pywebview."""
+        if not self._window:
+            return {'success': False, 'error': 'Không tìm thấy cửa sổ.'}
+        
+        display_names = {
+            'mau_bia_1.docx': 'Mau_bia_1.docx',
+            'mau_bia_2.docx': 'Mau_bia_2.docx',
+            'mau_bia_3.docx': 'Mau_bia_3.docx'
+        }
+        default_name = display_names.get(filename, filename)
+        
+        save_path = self.select_save_path(default_name)
+        if not save_path:
+            return {'success': False, 'info': 'Đã hủy tải xuống.'}
+            
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            src_path = os.path.join(base_dir, 'static', 'covers', filename)
+            
+            if not os.path.exists(src_path):
+                return {'success': False, 'error': f'Không tìm thấy tệp mẫu {filename}.'}
+                
+            shutil.copy2(src_path, save_path)
+            return {'success': True, 'saved_to': save_path}
+        except Exception as e:
+            return {'success': False, 'error': f'Lỗi lưu tệp: {str(e)}'}
 
 
 # ---------------------------------------------------------------------------

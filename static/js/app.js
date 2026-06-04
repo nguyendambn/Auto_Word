@@ -396,9 +396,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ══════════════════════════════════════════════════
-    //  INITIALIZE
-    // ══════════════════════════════════════════════════
+    // ── Download Cover Templates (Pywebview Bridge) ─────────────────
+    const coverLinks = document.querySelectorAll('a[download]');
+    coverLinks.forEach(link => {
+        link.addEventListener('click', async (e) => {
+            if (window.pywebview && window.pywebview.api) {
+                e.preventDefault();
+                const filename = link.getAttribute('href').split('/').pop();
+                try {
+                    const result = await window.pywebview.api.download_cover(filename);
+                    if (result && result.success) {
+                        showToast('Tải xuống thành công', `Đã lưu tại: ${result.saved_to}`, 'success');
+                    } else if (result && result.error) {
+                        showToast('Lỗi tải xuống', result.error, 'error');
+                    }
+                } catch (err) {
+                    showToast('Lỗi kết nối', err.message, 'error');
+                }
+            }
+        });
+    });
 
     applyPreset(PRESETS.dakltn);
 });
