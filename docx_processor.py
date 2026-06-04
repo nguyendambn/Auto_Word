@@ -2143,34 +2143,7 @@ def format_document(input_path, output_path, opts):
                 is_h1_no_num = False
 
         # Nhận diện các sub-heading H2 không đánh số (thường nằm trong MỞ ĐẦU, KẾT LUẬN)
-        h2_no_num_keywords = [
-            "lý do chọn đề tài", "ly do chon de tai",
-            "mục tiêu nghiên cứu", "muc tieu nghien cuu",
-            "đối tượng và phạm vi nghiên cứu", "doi tuong va pham vi nghien cuu",
-            "đối tượng nghiên cứu", "phạm vi nghiên cứu",
-            "kết quả mong muốn đạt được của đề tài", "ket qua mong muon dat duoc",
-            "kết quả mong muốn", "ket qua mong muon",
-            "cấu trúc của báo cáo", "cau truc cua bao cao",
-            "cấu trúc báo cáo", "cau truc bao cao",
-            "phương pháp nghiên cứu", "phuong phap nghien cuu",
-            "ý nghĩa khoa học và thực tiễn", "y nghia khoa hoc va thuc tien",
-            "tính mới của đề tài", "tinh moi cua de tai",
-            "câu hỏi nghiên cứu", "câu hoi nghien cuu",
-            "giả thuyết nghiên cứu", "gia thuyet nghien cuu",
-            "bố cục của báo cáo", "bo cuc cua bao cao",
-            "bố cục báo cáo", "bo cuc bao cao",
-        ]
-        h2_no_num_clean_keywords = [
-            re.sub(r'[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', '', k)
-            for k in h2_no_num_keywords
-        ]
-        is_h2_no_num = (
-            current_h1_is_no_num  # chỉ áp dụng khi đang trong H1 không số (MỞ ĐẦU, KẾT LUẬN...)
-            and len(text) < 80
-            and text_lower_clean in h2_no_num_clean_keywords
-            and not re.match(r'^[\-\+\*•]', text.strip())
-            and not text.rstrip().endswith(':')
-        )
+        is_h2_no_num = False
 
         is_h1, is_h2, is_h3 = False, False, False
         heading_level = None
@@ -2499,8 +2472,6 @@ def format_document(input_path, output_path, opts):
                 p.paragraph_format.line_spacing = line_spacing
                 p.paragraph_format.space_before = Pt(space_before)
                 p.paragraph_format.space_after = Pt(space_after)
-                p.paragraph_format.left_indent = None
-                p.paragraph_format.right_indent = None
                 
                 is_references = para_section_type.get(p._p) == "references"
                 is_cover_para = para_section_type.get(p._p) == "cover"
@@ -2517,8 +2488,11 @@ def format_document(input_path, output_path, opts):
                         is_list_item = True
                     
                 if is_list_item or is_references or has_original_indent or is_cover_para:
-                    p.paragraph_format.first_line_indent = Pt(0)
+                    # Do not override paragraph indentation to preserve original/list styling
+                    pass
                 else:
+                    p.paragraph_format.left_indent = None
+                    p.paragraph_format.right_indent = None
                     p.paragraph_format.first_line_indent = first_line_indent
                 
                 # Xóa khoảng trắng/tab thủ công ở đầu đoạn văn để Word tự thụt lề bằng Paragraph Format
@@ -2529,8 +2503,9 @@ def format_document(input_path, output_path, opts):
                             if r.text:
                                 break
 
+                is_thanks = para_section_type.get(p._p) == "thanks"
                 for r in p.runs:
-                    set_run_font(r, font_name, body_size)
+                    set_run_font(r, font_name, body_size, italic=False if is_thanks else None)
                 try:
                     set_contextual_spacing(p, contextual_spacing)
                 except Exception as e:
