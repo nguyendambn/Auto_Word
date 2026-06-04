@@ -1,12 +1,21 @@
 @echo off
 chcp 65001 >nul 2>nul
-title Tool Word — Desktop Offline By Nguyen Van Dam
-Donate 2562207069 Bidv
+title Tool Word - Desktop Offline By Nguyen Van Dam
 
+color 0B
 echo.
-echo  ╔══════════════════════════════════════════════════╗
-echo  ║       Tool Word By Van Dam( Ủng hộ tôi 2562207069 Bidv)  ║
-echo  ╚══════════════════════════════════════════════════╝
+echo  ================================================================
+echo  #                                                              #
+echo  #       A U T O  -  W O R D    F O R M A T T E R              #
+echo  #                                                              #
+echo  ================================================================
+echo  #                                                              #
+echo  #   Tool Word - Desktop Offline              By Nguyen Van Dam #
+echo  #   Dai hoc Cong nghiep Ha Noi (HaUI)                         #
+echo  #                                                              #
+echo  #   Donate: 2562207069 - BIDV (Nguyen Van Dam)                 #
+echo  #                                                              #
+echo  ================================================================
 echo.
 
 :: Kiem tra Python
@@ -34,7 +43,7 @@ if not exist ".venv" (
 :: Kich hoat moi truong ao
 call .venv\Scripts\activate.bat
 
-:: Cai dat thu vien (chi hien thong bao o lan dau)
+:: Cai dat thu vien
 echo  [INFO] Dang kiem tra thu vien...
 pip install -q -r requirements.txt >nul 2>nul
 if errorlevel 1 (
