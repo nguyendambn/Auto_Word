@@ -1,4 +1,15 @@
+---
+title: Auto Word Formatter
+emoji: 📝
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 ## 💻 Hướng Dẫn Cài Đặt & Sử Dụng
+
 
 ### 1. Tải và thiết lập (Dành cho Developer)
 
