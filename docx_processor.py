@@ -398,7 +398,7 @@ def get_para_special_type(p):
         return "list"
         
     # 4. Mở đầu / Chương 1
-    if clean_text in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "MO DAU", "PHAN MO DAU", "LOI MO DAU", "LOI NOI DAU"]:
+    if clean_text in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "MO DAU", "PHAN MO DAU", "LOI MO DAU", "LOI NOI DAU", "GIỚI THIỆU ĐỀ TÀI", "GIOI THIEU DE TAI"]:
         return "body"
     if re.match(r'^CHƯƠNG\s+(1|I)\b', clean_text, re.IGNORECASE):
         return "body"
@@ -804,7 +804,7 @@ def remove_manual_entries_under_titles(doc):
                 is_end_of_directory = False
                 if next_style.startswith('Heading') and not is_directory_line(next_text):
                     is_end_of_directory = True
-                elif (re.match(r'^CHƯƠNG\s+[IVX\d]+', next_text, re.IGNORECASE) or next_text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU"]) and not is_directory_line(next_text):
+                elif (re.match(r'^CHƯƠNG\s+[IVX\d]+', next_text, re.IGNORECASE) or next_text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI"]) and not is_directory_line(next_text):
                     is_end_of_directory = True
                     
                 if is_end_of_directory:
@@ -1071,7 +1071,7 @@ def adjust_caption_positions(doc, format_cover=True, skip_paras=None):
                 if not is_real_heading:
                     if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                         is_real_heading = True
-                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"]:
+                    elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI", "KẾT LUẬN", "KẾT LUẬN CHUNG", "KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN", "TÀI LIỆU THAM KHẢO"]:
                         is_real_heading = True
                 if is_real_heading and not is_directory_line(text):
                     in_front_matter_directory = False
@@ -2144,14 +2144,14 @@ def format_document(input_path, output_path, opts):
             "danh mục các thuật ngữ, ký hiệu và các chữ viết tắt",
             "danh mục thuật ngữ, ký hiệu và từ viết tắt",
             "danh mục các thuật ngữ, ký hiệu và từ viết tắt",
-            "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu",
+            "mở đầu", "phần mở đầu", "lời mở đầu", "lời nói đầu", "giới thiệu đề tài",
             "kết luận", "kết luận chung", "kết luận và hướng phát triển", "tài liệu tham khảo",
             "loi cam on", "loi cam doan", "danh muc hinh anh", "danh muc bang bieu",
             "danh muc cac thuat ngu viet tat", "danh muc thuat ngu viet tat",
             "danh muc cac thuat ngu, ky hieu va cac chu viet tat",
             "danh muc thuat ngu, ky hieu va tu viet tat",
             "danh muc cac thuat ngu, ky hieu va tu viet tat",
-            "mo dau", "phan mo dau", "loi mo dau", "loi noi dau",
+            "mo dau", "phan mo dau", "loi mo dau", "loi noi dau", "gioi thieu de tai",
             "ket luan", "ket luan chung", "ket luan va huong phat trien", "tai lieu tham khao"
         ]
         
@@ -2255,7 +2255,7 @@ def format_document(input_path, output_path, opts):
         if not is_real_heading:
             if re.match(r'^CHƯƠNG\s+[IVX\d]+', text, re.IGNORECASE):
                 is_real_heading = True
-            elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU"]:
+            elif text_upper in ["MỞ ĐẦU", "PHẦN MỞ ĐẦU", "LỜI MỞ ĐẦU", "LỜI NÓI ĐẦU", "GIỚI THIỆU ĐỀ TÀI"]:
                 is_real_heading = True
 
         if is_real_heading and not is_directory_line(text):
