@@ -6,6 +6,4 @@ __pycache__/
 scratch/
 .idea/
 .vscode/
-# Bỏ qua file mẫu bìa để không bị Hugging Face từ chối do cơ chế binary files
-static/covers/
 ~$*.docx
