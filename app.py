@@ -23,12 +23,13 @@ def api_format():
     if 'file' not in request.files:
         return jsonify({'error': 'Không tìm thấy tệp tin được tải lên.'}), 400
 
-    file = request.files['file']
-    if file.filename == '':
+    files = request.files.getlist('file')
+    if not files or all(f.filename == '' for f in files):
         return jsonify({'error': 'Tên tệp tin không hợp lệ.'}), 400
 
-    if not file.filename.lower().endswith('.docx'):
-        return jsonify({'error': 'Vui lòng chỉ tải lên tệp tin Word (.docx).'}), 400
+    for file in files:
+        if file.filename != '' and not file.filename.lower().endswith('.docx'):
+            return jsonify({'error': 'Vui lòng chỉ tải lên tệp tin Word (.docx).'}), 400
 
     # Đọc cấu hình định dạng
     try:
@@ -61,20 +62,59 @@ def api_format():
         return jsonify({'error': f'Dữ liệu cấu hình không đúng: {str(e)}'}), 400
 
     save_path = request.form.get('save_path', '').strip()
+    valid_files = [f for f in files if f.filename != '']
+    if not valid_files:
+        return jsonify({'error': 'Không có tệp tin hợp lệ nào được tải lên.'}), 400
+
+    temp_dir = tempfile.gettempdir()
 
     try:
-        # Lưu file tạm
-        temp_dir = tempfile.gettempdir()
-        input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
-        file.save(input_path)
-
-        try:
-            if save_path:
-                # Lưu trực tiếp vào đường dẫn người dùng chọn
-                format_document(input_path, save_path, opts)
+        # TH1: Chạy offline (có save_path)
+        if save_path:
+            if len(valid_files) == 1:
+                # 1 file duy nhất: save_path là đường dẫn tệp tin cụ thể
+                file = valid_files[0]
+                input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
+                file.save(input_path)
+                try:
+                    format_document(input_path, save_path, opts)
+                finally:
+                    if os.path.exists(input_path):
+                        os.remove(input_path)
                 return jsonify({'success': True, 'saved_to': save_path})
             else:
-                # Tạo file tạm và trả về dưới dạng download
+                # Nhiều file: save_path là một thư mục lưu trữ
+                if not os.path.isdir(save_path):
+                    # Thử tạo thư mục nếu chưa tồn tại
+                    os.makedirs(save_path, exist_ok=True)
+                
+                saved_files = []
+                for file in valid_files:
+                    # Tạo file tạm
+                    input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
+                    file.save(input_path)
+                    
+                    # Xác định tên file đầu ra trong thư mục đích
+                    base, ext = os.path.splitext(os.path.basename(file.filename))
+                    output_name = f"{base}_formatted{ext}"
+                    dest_path = os.path.join(save_path, output_name)
+                    
+                    try:
+                        format_document(input_path, dest_path, opts)
+                        saved_files.append(dest_path)
+                    finally:
+                        if os.path.exists(input_path):
+                            os.remove(input_path)
+                return jsonify({'success': True, 'saved_to': save_path, 'files': saved_files})
+                
+        # TH2: Chạy online (tải về qua trình duyệt - không có save_path)
+        else:
+            if len(valid_files) == 1:
+                # 1 file duy nhất: trả về file .docx trực tiếp
+                file = valid_files[0]
+                input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
+                file.save(input_path)
+                
                 base, _ = os.path.splitext(file.filename)
                 output_name = f"{base}_formatted.docx"
                 output_path = os.path.join(temp_dir, output_name)
@@ -89,6 +129,8 @@ def api_format():
                 finally:
                     if os.path.exists(output_path):
                         os.remove(output_path)
+                    if os.path.exists(input_path):
+                        os.remove(input_path)
                         
                 return send_file(
                     return_data,
@@ -96,9 +138,36 @@ def api_format():
                     download_name=output_name,
                     mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 )
-        finally:
-            if os.path.exists(input_path):
-                os.remove(input_path)
+            else:
+                # Nhiều file: Đóng gói vào file ZIP
+                import zipfile
+                
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                    for file in valid_files:
+                        input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
+                        file.save(input_path)
+                        
+                        base, ext = os.path.splitext(os.path.basename(file.filename))
+                        output_name = f"{base}_formatted{ext}"
+                        output_path = os.path.join(temp_dir, output_name)
+                        
+                        try:
+                            format_document(input_path, output_path, opts)
+                            zip_file.write(output_path, output_name)
+                        finally:
+                            if os.path.exists(output_path):
+                                os.remove(output_path)
+                            if os.path.exists(input_path):
+                                os.remove(input_path)
+                                
+                zip_buffer.seek(0)
+                return send_file(
+                    zip_buffer,
+                    as_attachment=True,
+                    download_name="AutoWord_Formatted_Files.zip",
+                    mimetype='application/zip'
+                )
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -129,6 +198,19 @@ class Api:
             webview.FileDialog.SAVE,
             save_filename=default_name,
             file_types=file_types
+        )
+        if result:
+            if isinstance(result, (tuple, list)):
+                return result[0]
+            return result
+        return None
+
+    def select_save_folder(self):
+        """Mở hộp thoại chọn thư mục của Windows, trả về đường dẫn hoặc None."""
+        if not self._window:
+            return None
+        result = self._window.create_file_dialog(
+            webview.FileDialog.FOLDER
         )
         if result:
             if isinstance(result, (tuple, list)):

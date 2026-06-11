@@ -8,10 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── DOM References ───────────────────────────────
     const uploadZone         = document.getElementById('uploadZone');
     const fileInput          = document.getElementById('fileInput');
-    const fileDetails        = document.getElementById('fileDetails');
-    const fileName           = document.getElementById('fileName');
-    const fileSize           = document.getElementById('fileSize');
-    const removeFileBtn      = document.getElementById('removeFileBtn');
+    const fileListContainer  = document.getElementById('fileListContainer');
     const themeToggle        = document.getElementById('themeToggle');
 
     const marginTop          = document.getElementById('marginTop');
@@ -66,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PX_SCALE = 2.28; // mm → px conversion for A4 preview
 
     // ── State ────────────────────────────────────────
-    let selectedFile = null;
+    let selectedFiles = [];
     let toastTimer   = null;
 
     // ── Presets ──────────────────────────────────────
@@ -148,32 +145,104 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         uploadZone.classList.remove('dragover');
         const files = e.dataTransfer.files;
-        if (files.length) handleFile(files[0]);
+        if (files.length) handleFiles(files);
     });
 
     fileInput.addEventListener('change', () => {
-        if (fileInput.files.length) handleFile(fileInput.files[0]);
+        if (fileInput.files.length) handleFiles(fileInput.files);
     });
 
-    removeFileBtn.addEventListener('click', () => {
-        selectedFile = null;
-        fileInput.value = '';
-        fileDetails.style.display = 'none';
-        uploadZone.style.display = 'flex';
-        formatBtn.disabled = true;
-    });
-
-    function handleFile(file) {
-        if (!file.name.toLowerCase().endsWith('.docx')) {
+    function handleFiles(files) {
+        let hasInvalidFile = false;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (!file.name.toLowerCase().endsWith('.docx')) {
+                hasInvalidFile = true;
+                continue;
+            }
+            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                selectedFiles.push(file);
+            }
+        }
+        if (hasInvalidFile) {
             showToast('Lỗi định dạng', 'Chỉ chấp nhận tệp .docx', 'error');
+        }
+        renderFileList();
+    }
+
+    function renderFileList() {
+        fileListContainer.innerHTML = '';
+        if (selectedFiles.length === 0) {
+            fileListContainer.style.display = 'none';
+            uploadZone.style.display = 'flex';
+            formatBtn.disabled = true;
             return;
         }
-        selectedFile = file;
-        fileName.textContent = file.name;
-        fileSize.textContent = formatFileSize(file.size);
-        fileDetails.style.display = 'flex';
+
+        // Thêm nút "Xoá tất cả" nếu chọn từ 2 file trở lên
+        if (selectedFiles.length > 1) {
+            const headerDiv = document.createElement('div');
+            headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;';
+            headerDiv.innerHTML = `
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-strong);">Danh sách tệp (${selectedFiles.length})</span>
+                <button class="icon-btn remove-btn" id="clearAllBtn" style="width: auto; height: auto; padding: 6px 12px; font-size: 11px; font-weight: 500; display: flex; gap: 4px; align-items: center; border-radius: 6px;" title="Xóa tất cả các tệp">
+                    <i class="fa-solid fa-trash-can"></i> Xóa tất cả
+                </button>
+            `;
+            headerDiv.querySelector('#clearAllBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedFiles = [];
+                fileInput.value = '';
+                renderFileList();
+            });
+            fileListContainer.appendChild(headerDiv);
+        }
+
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <div class="file-info-inner">
+                    <div class="file-icon-box"><i class="fa-solid fa-file-word"></i></div>
+                    <div class="file-text" style="max-width: 320px;">
+                        <span class="file-name" title="${file.name}">${file.name}</span>
+                        <span class="file-size">${formatFileSize(file.size)}</span>
+                    </div>
+                </div>
+                <button class="icon-btn remove-btn" data-index="${index}" title="Xóa tệp"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            
+            item.querySelector('.remove-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedFiles.splice(index, 1);
+                fileInput.value = '';
+                renderFileList();
+            });
+            
+            fileListContainer.appendChild(item);
+        });
+
+        const addMoreDiv = document.createElement('div');
+        addMoreDiv.style.cssText = 'display: flex; justify-content: center; margin-top: 8px; width: 100%;';
+        addMoreDiv.innerHTML = `
+            <button class="preset-btn" style="flex-direction: row; padding: 8px 16px; border-style: dashed; width: 100%; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-plus" style="font-size: 14px;"></i> Thêm tệp Word khác
+            </button>
+        `;
+        addMoreDiv.querySelector('button').addEventListener('click', () => {
+            fileInput.click();
+        });
+        fileListContainer.appendChild(addMoreDiv);
+
         uploadZone.style.display = 'none';
+        fileListContainer.style.display = 'flex';
         formatBtn.disabled = false;
+        
+        if (selectedFiles.length === 1) {
+            formatBtn.querySelector('span').textContent = 'Định dạng tự động';
+        } else {
+            formatBtn.querySelector('span').textContent = `Định dạng ${selectedFiles.length} file`;
+        }
     }
 
     // ══════════════════════════════════════════════════
@@ -282,17 +351,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // ══════════════════════════════════════════════════
 
     formatBtn.addEventListener('click', async () => {
-        if (!selectedFile) return;
+        if (selectedFiles.length === 0) return;
 
-        const originalName  = selectedFile.name;
-        const dotIdx        = originalName.lastIndexOf('.');
-        const formattedName = `${originalName.substring(0, dotIdx)}_formatted.docx`;
-
-        // Try to open native Save Dialog via pywebview bridge
         let savePath = null;
+        let isMultiple = selectedFiles.length > 1;
+
         if (window.pywebview && window.pywebview.api) {
             try {
-                savePath = await window.pywebview.api.select_save_path(formattedName);
+                if (isMultiple) {
+                    savePath = await window.pywebview.api.select_save_folder();
+                } else {
+                    const originalName  = selectedFiles[0].name;
+                    const dotIdx        = originalName.lastIndexOf('.');
+                    const formattedName = `${originalName.substring(0, dotIdx)}_formatted.docx`;
+                    savePath = await window.pywebview.api.select_save_path(formattedName);
+                }
                 if (!savePath) return; // User cancelled
             } catch (err) {
                 console.warn('Save dialog error:', err);
@@ -322,7 +395,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Build FormData with all settings
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        selectedFiles.forEach(file => {
+            formData.append('file', file);
+        });
         if (savePath) formData.append('save_path', savePath);
 
         formData.append('font_name',           fontName.value);
@@ -384,7 +459,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url  = window.URL.createObjectURL(blob);
                 const a    = document.createElement('a');
                 a.href     = url;
-                a.download = formattedName;
+                if (isMultiple) {
+                    a.download = "AutoWord_Formatted_Files.zip";
+                } else {
+                    const originalName  = selectedFiles[0].name;
+                    const dotIdx        = originalName.lastIndexOf('.');
+                    a.download = `${originalName.substring(0, dotIdx)}_formatted.docx`;
+                }
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);

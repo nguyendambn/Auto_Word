@@ -41,18 +41,11 @@
                     <div class="upload-zone" id="uploadZone">
                         <div class="upload-icon-wrapper"><i class="fa-solid fa-cloud-arrow-up"></i></div>
                         <h3>Kéo thả file .docx vào đây</h3>
-                        <p>hoặc click để chọn tệp</p>
-                        <input type="file" id="fileInput" accept=".docx" hidden>
+                        <p>hoặc click để chọn tệp (chọn được nhiều file)</p>
+                        <input type="file" id="fileInput" accept=".docx" multiple hidden>
                     </div>
-                    <div class="file-details" id="fileDetails" style="display:none;">
-                        <div class="file-info-inner">
-                            <div class="file-icon-box"><i class="fa-solid fa-file-word"></i></div>
-                            <div class="file-text">
-                                <span class="file-name" id="fileName">document.docx</span>
-                                <span class="file-size" id="fileSize">0 KB</span>
-                            </div>
-                        </div>
-                        <button class="icon-btn remove-btn" id="removeFileBtn" title="Xóa tệp"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="file-list-container" id="fileListContainer" style="display:none;">
+                        <!-- File list items will be rendered dynamically here -->
                     </div>
                 </div>
 
