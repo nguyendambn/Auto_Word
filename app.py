@@ -9,7 +9,7 @@ from docx_processor import format_document
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Giới hạn upload tối đa 50MB
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Giới hạn upload tối đa 100MB
 
 
 @app.route('/')
