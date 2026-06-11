@@ -2493,6 +2493,14 @@ def format_document(input_path, output_path, opts):
                 try: r.font.cs_italic = None
                 except Exception: pass
 
+            p.paragraph_format.line_spacing = line_spacing
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            try:
+                set_contextual_spacing(p, contextual_spacing)
+            except Exception:
+                pass
+
         elif is_h2:
             safe_set_style(doc, p, 'Heading 2')
 
@@ -2529,6 +2537,14 @@ def format_document(input_path, output_path, opts):
                 except Exception: pass
                 try: r.font.cs_italic = None
                 except Exception: pass
+
+            p.paragraph_format.line_spacing = line_spacing
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            try:
+                set_contextual_spacing(p, contextual_spacing)
+            except Exception:
+                pass
 
         elif is_h3:
             level = heading_level if heading_level is not None else 3
@@ -2573,6 +2589,14 @@ def format_document(input_path, output_path, opts):
                 except Exception: pass
                 try: r.font.cs_italic = None
                 except Exception: pass
+
+            p.paragraph_format.line_spacing = line_spacing
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            try:
+                set_contextual_spacing(p, contextual_spacing)
+            except Exception:
+                pass
 
         else:
             if (in_front_matter_directory or is_toc_or_directory_paragraph(p)) and not is_directory_title and not is_muc_luc:
@@ -2921,6 +2945,54 @@ def format_document(input_path, output_path, opts):
                     instr.text = new_text
     except Exception as e:
         print("Lỗi khi cập nhật cấp độ mục lục lên Heading 4:", e)
+
+    # --- POST-PROCESSING: XÓA TRIỆT ĐỂ AUTOSPACING ("AUTO" SPACING) TRONG XML ---
+    try:
+        from docx.enum.style import WD_STYLE_TYPE
+        
+        def remove_autospacing_from_p(p):
+            try:
+                pPr = p._p.get_or_add_pPr()
+                spacing = pPr.find(qn('w:spacing'))
+                if spacing is not None:
+                    for attr in [qn('w:beforeAutospacing'), qn('w:afterAutospacing')]:
+                        if attr in spacing.attrib:
+                            del spacing.attrib[attr]
+                    for key in list(spacing.attrib.keys()):
+                        if 'autospacing' in key.lower():
+                            del spacing.attrib[key]
+            except Exception:
+                pass
+
+        for p in doc.paragraphs:
+            remove_autospacing_from_p(p)
+
+        for tbl in doc.tables:
+            def clean_tbl_autospacing(t):
+                for row in t.rows:
+                    for cell in row.cells:
+                        for p in cell.paragraphs:
+                            remove_autospacing_from_p(p)
+                        for nested_t in cell.tables:
+                            clean_tbl_autospacing(nested_t)
+            clean_tbl_autospacing(tbl)
+
+        for style in doc.styles:
+            try:
+                if style.type == WD_STYLE_TYPE.PARAGRAPH:
+                    pPr = style.element.get_or_add_pPr()
+                    spacing = pPr.find(qn('w:spacing'))
+                    if spacing is not None:
+                        for attr in [qn('w:beforeAutospacing'), qn('w:afterAutospacing')]:
+                            if attr in spacing.attrib:
+                                del spacing.attrib[attr]
+                        for key in list(spacing.attrib.keys()):
+                            if 'autospacing' in key.lower():
+                                del spacing.attrib[key]
+            except Exception:
+                pass
+    except Exception as e:
+        print("Lỗi khi xóa autospacing hậu xử lý:", e)
 
     # --- LƯU KẾT QUẢ ---
     doc.save(output_path)
