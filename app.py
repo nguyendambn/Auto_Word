@@ -17,6 +17,16 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_file(os.path.join(app.static_folder, 'sitemap.xml'), mimetype='application/xml')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_file(os.path.join(app.static_folder, 'logo.png'), mimetype='image/png')
+
+
 @app.route('/api/format', methods=['POST'])
 def api_format():
     # Kiểm tra file
