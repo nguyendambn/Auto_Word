@@ -1044,7 +1044,8 @@ def cleanup_document_whitespace(doc, skip_paras=None):
 def is_fig_caption_text(text, in_front_matter=False):
     if in_front_matter or is_directory_line(text) or len(text) >= 200:
         return False
-    m = re.match(r'^(Hình|Ảnh)\s*(.*)', text, re.IGNORECASE)
+    # Cho phép khớp dấu hai chấm tùy chọn sau nhãn (ví dụ: Hình: 2.1 hoặc Hình 2.1)
+    m = re.match(r'^(Hình|Ảnh)\s*:?\s*(.*)', text, re.IGNORECASE)
     if m:
         rest = m.group(2).strip()
         if rest and (rest[0].isdigit() or rest[0] in 'IVX'):
@@ -1055,7 +1056,8 @@ def is_fig_caption_text(text, in_front_matter=False):
 def is_tbl_caption_text(text, in_front_matter=False):
     if in_front_matter or is_directory_line(text) or len(text) >= 200:
         return False
-    m = re.match(r'^(Bảng)\s*(.*)', text, re.IGNORECASE)
+    # Cho phép khớp dấu hai chấm tùy chọn sau nhãn (ví dụ: Bảng: 2.1 hoặc Bảng 2.1)
+    m = re.match(r'^(Bảng)\s*:?\s*(.*)', text, re.IGNORECASE)
     if m:
         rest = m.group(2).strip()
         if rest and (rest[0].isdigit() or rest[0] in 'IVX'):
