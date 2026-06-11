@@ -1916,8 +1916,22 @@ def format_document(input_path, output_path, opts):
     except Exception as e:
             logging.warning(f"Silent error ignored: {e}")
 
-    # Cập nhật/Thêm styles cho các danh mục (Table of Contents & Table of Figures)
+    # Cập nhật tất cả các paragraph styles khác trong tài liệu (Body Text, List Paragraph, etc.) để thừa kế chuẩn
     from docx.enum.style import WD_STYLE_TYPE
+    for style in doc.styles:
+        try:
+            if style.type == WD_STYLE_TYPE.PARAGRAPH:
+                style_name_lower = (style.name or '').lower()
+                if any(x in style_name_lower for x in ['heading', 'toc', 'caption', 'title', 'subtitle', 'cover', 'header', 'footer', 'table of figures', 'table of tables']):
+                    continue
+                style.paragraph_format.space_before = Pt(space_before)
+                style.paragraph_format.space_after = Pt(space_after)
+                style.paragraph_format.line_spacing = line_spacing
+                set_contextual_spacing(style, contextual_spacing)
+        except Exception:
+            pass
+
+    # Cập nhật/Thêm styles cho các danh mục (Table of Contents & Table of Figures)
     toc_styles = [
         'TOC 1', 'TOC 2', 'TOC 3', 'TOC 4', 'TOC 5', 
         'TOC1', 'TOC2', 'TOC3', 'TOC4', 'TOC5',
