@@ -8,3 +8,5 @@ scratch/
 .vscode/
 *.log
 ~$*.docx
+feedbacks.csv
+
