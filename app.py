@@ -6,6 +6,29 @@ import shutil
 from flask import Flask, render_template, request, send_file, jsonify
 import webview
 from docx_processor import format_document
+import logging
+
+# Cấu hình tracking người dùng sử dụng tool
+logger = logging.getLogger('autoword_tracker')
+logger.setLevel(logging.INFO)
+log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'autoword_access.log')
+file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+def log_format_event(req, files, success, error_msg=None):
+    try:
+        ip = req.headers.get('X-Forwarded-For', req.remote_addr)
+        if ip and ',' in ip:
+            ip = ip.split(',')[0].strip()
+        file_names = [f.filename for f in files if f.filename != '']
+        num_files = len(file_names)
+        files_str = ", ".join(file_names)
+        status_str = "SUCCESS" if success else f"FAILED ({error_msg})"
+        logger.info(f"IP: {ip} | Status: {status_str} | Count: {num_files} | Files: [{files_str}]")
+    except Exception:
+        pass
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -91,6 +114,7 @@ def api_format():
                 finally:
                     if os.path.exists(input_path):
                         os.remove(input_path)
+                log_format_event(request, valid_files, True)
                 return jsonify({'success': True, 'saved_to': save_path})
             else:
                 # Nhiều file: save_path là một thư mục lưu trữ
@@ -115,6 +139,7 @@ def api_format():
                     finally:
                         if os.path.exists(input_path):
                             os.remove(input_path)
+                log_format_event(request, valid_files, True)
                 return jsonify({'success': True, 'saved_to': save_path, 'files': saved_files})
                 
         # TH2: Chạy online (tải về qua trình duyệt - không có save_path)
@@ -142,6 +167,7 @@ def api_format():
                     if os.path.exists(input_path):
                         os.remove(input_path)
                         
+                log_format_event(request, valid_files, True)
                 return send_file(
                     return_data,
                     as_attachment=True,
@@ -172,6 +198,7 @@ def api_format():
                                 os.remove(input_path)
                                 
                 zip_buffer.seek(0)
+                log_format_event(request, valid_files, True)
                 return send_file(
                     zip_buffer,
                     as_attachment=True,
@@ -186,6 +213,7 @@ def api_format():
             friendly_msg = "Không thể lưu tệp tin. Có thể tệp tin đích đang được mở trong Word hoặc ứng dụng khác. Vui lòng đóng tệp tin đó lại hoặc chọn nơi lưu khác và thử lại."
         else:
             friendly_msg = f"Lỗi định dạng tài liệu: {err_msg}"
+        log_format_event(request, valid_files, False, err_msg)
         return jsonify({'error': friendly_msg}), 500
 
 
