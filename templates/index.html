@@ -312,6 +312,75 @@
     </div>
 </div>
 
+<!-- Floating Feedback Button -->
+<button class="feedback-float-btn" id="feedbackFloatBtn" title="Góp ý / Báo lỗi">
+    <i class="fa-solid fa-comment-dots"></i>
+</button>
+
+<!-- Feedback Modal -->
+<div class="modal-overlay" id="feedbackModal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-bug"></i> Báo lỗi & Góp ý</h3>
+            <button class="close-modal-btn" id="closeFeedbackModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="feedbackForm">
+                <div class="input-group push-bottom">
+                    <label>Loại vấn đề</label>
+                    <div class="custom-select-wrapper">
+                        <select class="custom-select" id="feedbackType" name="type">
+                            <option value="Lỗi mất ảnh / bảng">Lỗi mất ảnh / bảng</option>
+                            <option value="Lỗi mục lục">Lỗi mục lục / số trang</option>
+                            <option value="Lỗi không nhận diện Heading">Lỗi không nhận diện Heading</option>
+                            <option value="Đề xuất tính năng">Đề xuất tính năng</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Mô tả chi tiết</label>
+                    <textarea class="custom-input" id="feedbackMessage" name="message" rows="4" placeholder="Mô tả lỗi hoặc góp ý của bạn..." required></textarea>
+                </div>
+                <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="primary-btn" id="submitFeedbackBtn">Gửi góp ý</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Donate Modal -->
+<div class="modal-overlay" id="donateModal" style="display:none;">
+    <div class="modal-content donate-modal">
+        <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+            <button class="close-modal-btn" id="closeDonateModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding-top: 0;">
+            <h2 style="color: var(--primary); margin-bottom: 10px;">Xử lý thành công! <i class="fa-solid fa-check-circle"></i></h2>
+            
+            <!-- Summary Stats Section -->
+            <div id="formatStatsContainer" style="background: var(--bg-surface); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: left; display: none;">
+                <p style="margin-bottom: 5px; font-weight: 600;"><i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> Thống kê định dạng:</p>
+                <ul id="formatStatsList" style="list-style: none; padding-left: 5px; color: var(--text-color);">
+                </ul>
+            </div>
+
+            <p style="margin-bottom: 20px; font-size: 15px; color: var(--text-color);">
+                Auto-Word đã giúp bạn tiết kiệm thời gian định dạng.<br>
+                Nếu công cụ hữu ích, bạn có thể mời tác giả một ly cafe nhé ☕
+            </p>
+            <div class="qr-container" style="background: white; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 20px;">
+                <!-- Dùng API tạo mã QR từ số tài khoản 2562207069 BIDV của tác giả -->
+                <img src="https://img.vietqr.io/image/BIDV-2562207069-compact.png" alt="Donate QR Code" style="width: 250px; height: auto;">
+            </div>
+            <p style="font-weight: bold; margin-bottom: 5px;">Ngân hàng BIDV</p>
+            <p>STK: <strong style="color: var(--primary);">2562207069</strong></p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 15px;">Cảm ơn bạn rất nhiều! ❤</p>
+        </div>
+    </div>
+</div>
+
 <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -12,6 +12,14 @@ from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
 
+
+def safe_set_p_text(p, new_text):
+    """Update paragraph text but skip if it contains math elements to preserve them."""
+    has_math = p._element.xpath('.//m:oMath | .//m:oMathPara')
+    if has_math:
+        return
+    p.text = new_text
+
 def add_page_number_field(run):
     """Chèn trường PAGE vào run (đánh số trang động trong Word)."""
     fldChar1 = OxmlElement('w:fldChar')
@@ -689,7 +697,7 @@ def make_caption_paragraph(p, label, chapter, seq_num, text_content, font_name, 
     Định dạng: [label] [chapter].[SEQ].[text_content]
     Ví dụ: Hình 2.1. Tên hình
     """
-    p.text = ""  # Xóa các runs cũ
+    safe_set_p_text(p, "")  # Xóa các runs cũ
     
     # 1. Phần nhãn và chương (Ví dụ: "Hình 2.")
     r_prefix = p.add_run(f"{label} {chapter}.")
@@ -1794,7 +1802,7 @@ def format_document(input_path, output_path, opts):
                     
                 # Với các paragraph thông thường
                 p = cover_paras[idx]
-                p.text = ""  # Xóa các runs cũ
+                safe_set_p_text(p, "")  # Xóa các runs cũ
                 
                 p.paragraph_format.first_line_indent = Pt(0)
                 p.paragraph_format.right_indent = Pt(0)
@@ -2138,7 +2146,7 @@ def format_document(input_path, output_path, opts):
         # Clean "Chương X: " or "Chương X :" to "Chương X " (removing the colon)
         cleaned_text = re.sub(r'^(CHƯƠNG\s+[IVX\d]+)\s*:\s*', r'\1 ', text, flags=re.IGNORECASE)
         if cleaned_text != text:
-            p.text = cleaned_text
+            safe_set_p_text(p, cleaned_text)
             text = cleaned_text
 
         text_upper = text.upper()
@@ -2473,7 +2481,7 @@ def format_document(input_path, output_path, opts):
 
             if auto_num:
                 if is_h1_no_num:
-                    p.text = text
+                    safe_set_p_text(p, text)
                 else:
                     disable_paragraph_numbering(p)
                     has_newline = '\n' in text
@@ -2484,7 +2492,7 @@ def format_document(input_path, output_path, opts):
                         p.text = f"CHƯƠNG {heading_counters[0]}. {clean}"
             
             if h1_upper:
-                p.text = p.text.upper()
+                safe_set_p_text(p, p.text.upper())
 
             for r in p.runs:
                 set_run_font(r, font_name, h1_size)
@@ -2530,7 +2538,7 @@ def format_document(input_path, output_path, opts):
                 disable_paragraph_numbering(p)
                 clean = re.sub(r'^[\d\.\-\s:]+', '', text).strip().lstrip(':. ')
                 effective_h1 = heading_counters[0] if heading_counters[0] > 0 else 1
-                p.text = f"{effective_h1}.{heading_counters[1]}. {clean}"
+                safe_set_p_text(p, f"{effective_h1}.{heading_counters[1]}. {clean}")
             for r in p.runs:
                 set_run_font(r, font_name, h2_size)
                 r.bold = None
@@ -2582,7 +2590,7 @@ def format_document(input_path, output_path, opts):
                     if val == 0 and i < 2:
                         val = 1
                     prefix_parts.append(str(val))
-                p.text = f"{'.'.join(prefix_parts)}. {clean}"
+                safe_set_p_text(p, f"{'.'.join(prefix_parts)}. {clean}")
             for r in p.runs:
                 set_run_font(r, font_name, h3_size)
                 r.bold = None
@@ -2998,3 +3006,7 @@ def format_document(input_path, output_path, opts):
 
     # --- LƯU KẾT QUẢ ---
     doc.save(output_path)
+    return {
+        "paragraphs": len(doc.paragraphs),
+        "tables": len(doc.tables)
+    }

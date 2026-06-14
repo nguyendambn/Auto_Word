@@ -447,14 +447,25 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBarInner.style.width = '100%';
             progressStep.textContent     = 'Hoàn tất!';
 
+            let formatStats = null;
+
             if (savePath) {
                 // File was saved directly by Python backend
+                const respData = await response.json();
+                if (respData.stats) formatStats = respData.stats;
+                
                 setTimeout(() => {
                     loadingOverlay.style.display = 'none';
                     showToast('Lưu thành công', `Đã lưu tại: ${savePath}`, 'success');
+                    if (typeof window.showDonateModal === 'function') window.showDonateModal(formatStats);
                 }, 600);
             } else {
                 // Fallback: download blob
+                const statsHeader = response.headers.get('X-Format-Stats');
+                if (statsHeader) {
+                    try { formatStats = JSON.parse(statsHeader); } catch(e){}
+                }
+
                 const blob = await response.blob();
                 const url  = window.URL.createObjectURL(blob);
                 const a    = document.createElement('a');
@@ -473,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     loadingOverlay.style.display = 'none';
                     showToast('Thành công', 'Tải xuống thành công!', 'success');
+                    if (typeof window.showDonateModal === 'function') window.showDonateModal(formatStats);
                 }, 600);
             }
         } catch (error) {
@@ -502,6 +514,94 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ══════════════════════════════════════════════════
+    //  MODALS & FEEDBACK HANDLING
+    // ══════════════════════════════════════════════════
+    const feedbackFloatBtn = document.getElementById('feedbackFloatBtn');
+    const feedbackModal = document.getElementById('feedbackModal');
+    const closeFeedbackModal = document.getElementById('closeFeedbackModal');
+    const feedbackForm = document.getElementById('feedbackForm');
+
+    const donateModal = document.getElementById('donateModal');
+    const closeDonateModal = document.getElementById('closeDonateModal');
+
+    // Mở Modal Feedback
+    if (feedbackFloatBtn && feedbackModal) {
+        feedbackFloatBtn.addEventListener('click', () => {
+            feedbackModal.style.display = 'flex';
+        });
+        closeFeedbackModal.addEventListener('click', () => {
+            feedbackModal.style.display = 'none';
+        });
+    }
+
+    // Đóng Modal khi click ra ngoài
+    window.addEventListener('click', (e) => {
+        if (e.target === feedbackModal) feedbackModal.style.display = 'none';
+        if (e.target === donateModal) donateModal.style.display = 'none';
+    });
+
+    // Đóng Donate Modal
+    if (closeDonateModal) {
+        closeDonateModal.addEventListener('click', () => {
+            donateModal.style.display = 'none';
+        });
+    }
+
+    // Xử lý gửi Feedback
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitFeedbackBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Đang gửi...';
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData(feedbackForm);
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Thành công', result.message, 'success');
+                    feedbackModal.style.display = 'none';
+                    feedbackForm.reset();
+                } else {
+                    showToast('Lỗi', result.error || 'Có lỗi xảy ra', 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Export hàm showDonateModal để gọi từ hàm formatDocument sau khi thành công
+    // Export hàm showDonateModal để gọi từ hàm formatDocument sau khi thành công
+    window.showDonateModal = function(stats) {
+        if (donateModal) {
+            const statsContainer = document.getElementById('formatStatsContainer');
+            const statsList = document.getElementById('formatStatsList');
+            
+            if (stats && statsList && statsContainer) {
+                statsList.innerHTML = `
+                    <li><i class="fa-solid fa-paragraph"></i> <b>${stats.paragraphs || 0}</b> đoạn văn</li>
+                    <li><i class="fa-solid fa-table"></i> <b>${stats.tables || 0}</b> bảng biểu</li>
+                `;
+                statsContainer.style.display = 'block';
+            } else if (statsContainer) {
+                statsContainer.style.display = 'none';
+            }
+            
+            donateModal.style.display = 'flex';
+        }
+    };
 
     applyPreset(PRESETS.dakltn);
 });

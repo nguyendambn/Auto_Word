@@ -3,7 +3,7 @@ import io
 import tempfile
 import threading
 import shutil
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, make_response
 import webview
 from docx_processor import format_document
 import logging
@@ -48,6 +48,34 @@ def sitemap():
 @app.route('/favicon.ico')
 def favicon():
     return send_file(os.path.join(app.static_folder, 'logo.png'), mimetype='image/png')
+
+
+@app.route('/api/feedback', methods=['POST'])
+def api_feedback():
+    try:
+        feedback_type = request.form.get('type', 'Khác')
+        message = request.form.get('message', '').strip()
+        if not message:
+            return jsonify({'error': 'Vui lòng nhập nội dung góp ý.'}), 400
+            
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip and ',' in ip:
+            ip = ip.split(',')[0].strip()
+            
+        import csv
+        from datetime import datetime
+        feedback_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'feedbacks.csv')
+        
+        file_exists = os.path.isfile(feedback_file)
+        with open(feedback_file, 'a', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Thời gian', 'IP', 'Loại góp ý', 'Nội dung'])
+            writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ip, feedback_type, message])
+            
+        return jsonify({'success': True, 'message': 'Cảm ơn bạn đã gửi góp ý!'})
+    except Exception as e:
+        return jsonify({'error': f'Lỗi khi gửi góp ý: {str(e)}'}), 500
 
 
 @app.route('/api/format', methods=['POST'])
@@ -110,12 +138,12 @@ def api_format():
                 input_path = os.path.join(temp_dir, 'autoword_input_' + os.path.basename(file.filename))
                 file.save(input_path)
                 try:
-                    format_document(input_path, save_path, opts)
+                    stats = format_document(input_path, save_path, opts)
                 finally:
                     if os.path.exists(input_path):
                         os.remove(input_path)
                 log_format_event(request, valid_files, True)
-                return jsonify({'success': True, 'saved_to': save_path})
+                return jsonify({'success': True, 'saved_to': save_path, 'stats': stats})
             else:
                 # Nhiều file: save_path là một thư mục lưu trữ
                 if not os.path.isdir(save_path):
@@ -154,8 +182,9 @@ def api_format():
                 output_name = f"{base}_formatted.docx"
                 output_path = os.path.join(temp_dir, output_name)
                 
+                import json
                 try:
-                    format_document(input_path, output_path, opts)
+                    stats = format_document(input_path, output_path, opts)
                     # Load vào RAM để xoá file rác ngay lập tức
                     return_data = io.BytesIO()
                     with open(output_path, 'rb') as f:
@@ -168,12 +197,14 @@ def api_format():
                         os.remove(input_path)
                         
                 log_format_event(request, valid_files, True)
-                return send_file(
+                response = make_response(send_file(
                     return_data,
                     as_attachment=True,
                     download_name=output_name,
                     mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                )
+                ))
+                response.headers['X-Format-Stats'] = json.dumps(stats)
+                return response
             else:
                 # Nhiều file: Đóng gói vào file ZIP
                 import zipfile
