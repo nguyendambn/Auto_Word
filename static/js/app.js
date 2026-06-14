@@ -526,11 +526,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const donateModal = document.getElementById('donateModal');
     const closeDonateModal = document.getElementById('closeDonateModal');
 
-    // Mở Modal Feedback
+    // Mở Modal Feedback & Xử lý kéo thả (Drag and Drop) trên PC và Điện thoại
     if (feedbackFloatBtn && feedbackModal) {
-        feedbackFloatBtn.addEventListener('click', () => {
+        let isDragging = false;
+        let startX, startY;
+        let initialX, initialY;
+        let dragThreshold = 6; // Ngưỡng pixel để phân biệt click và drag
+        let dragMoveCount = 0;
+
+        function startDrag(e) {
+            isDragging = true;
+            dragMoveCount = 0;
+            const event = e.touches ? e.touches[0] : e;
+            startX = event.clientX;
+            startY = event.clientY;
+            
+            const rect = feedbackFloatBtn.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+            
+            // Chuyển sang định vị tuyệt đối bằng px để kéo thả mượt mà
+            feedbackFloatBtn.style.bottom = 'auto';
+            feedbackFloatBtn.style.right = 'auto';
+            feedbackFloatBtn.style.left = `${initialX}px`;
+            feedbackFloatBtn.style.top = `${initialY}px`;
+            
+            if (e.type === 'touchstart') {
+                document.addEventListener('touchmove', onDrag, { passive: false });
+                document.addEventListener('touchend', endDrag);
+            } else {
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', endDrag);
+            }
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            // Ngăn cuộn trang trên điện thoại khi đang kéo nút
+            if (e.cancelable) e.preventDefault();
+            
+            const event = e.touches ? e.touches[0] : e;
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+            dragMoveCount++;
+
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+
+            // Giới hạn nút luôn nằm trong màn hình
+            const btnWidth = feedbackFloatBtn.offsetWidth;
+            const btnHeight = feedbackFloatBtn.offsetHeight;
+            const minX = 10;
+            const maxX = window.innerWidth - btnWidth - 10;
+            const minY = 10;
+            const maxY = window.innerHeight - btnHeight - 10;
+
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+
+            feedbackFloatBtn.style.left = `${newX}px`;
+            feedbackFloatBtn.style.top = `${newY}px`;
+        }
+
+        function endDrag(e) {
+            isDragging = false;
+            if (e.type === 'touchend') {
+                document.removeEventListener('touchmove', onDrag);
+                document.removeEventListener('touchend', endDrag);
+            } else {
+                document.removeEventListener('mousemove', onDrag);
+                document.removeEventListener('mouseup', endDrag);
+            }
+
+            // Nếu di chuyển nhiều hơn ngưỡng threshold, đánh dấu là vừa drag xong để tránh kích hoạt click
+            if (dragMoveCount > dragThreshold) {
+                feedbackFloatBtn.dataset.dragged = "true";
+                setTimeout(() => {
+                    feedbackFloatBtn.removeAttribute('data-dragged');
+                }, 50);
+            }
+        }
+
+        feedbackFloatBtn.addEventListener('mousedown', startDrag);
+        feedbackFloatBtn.addEventListener('touchstart', startDrag, { passive: true });
+
+        feedbackFloatBtn.addEventListener('click', (e) => {
+            // Nếu nút vừa được kéo thả thì bỏ qua sự kiện click mở modal
+            if (feedbackFloatBtn.getAttribute('data-dragged') === "true") {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
             feedbackModal.style.display = 'flex';
         });
+
         closeFeedbackModal.addEventListener('click', () => {
             feedbackModal.style.display = 'none';
         });
