@@ -966,15 +966,6 @@ label {
     box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
 }
 
-.developer-info {
-    text-align: center;
-    padding: 12px 24px;
-    font-size: 14px;
-    color: var(--text-muted);
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border-soft);
-}
-
 /* ── Responsive Mobile Optimizations ── */
 @media (max-width: 640px) {
     .panel-scroll {
@@ -1016,10 +1007,5 @@ label {
         right: 20px;
         width: 48px;
         height: 48px;
-    }
-    .developer-info {
-        padding-right: 80px; /* Tránh đè lên nút feedback nổi */
-        text-align: left;
-        font-size: 12px;
     }
 }
